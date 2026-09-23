@@ -1,13 +1,16 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ACTIVE_FILL,
   ACTIVE_RING,
   CONFLICT_RED,
   NEIGHBOR_FILL,
   NEIGHBOR_RING,
   NEUTRAL_FILL,
+  SELECT_RING,
+  phaseTiming,
 } from '../utils/constants';
-import { colorFill, edgeKey, layoutViewBox } from '../utils/helpers';
+import { colorFill, colorInk, edgeKey, layoutViewBox } from '../utils/helpers';
 
 const EMPTY = new Set();
 
@@ -18,16 +21,23 @@ function initialPositions(graph) {
 /**
  * Interactive node-link diagram. Node positions start from the backend
  * layout, and users can drag nodes with a mouse, pen, or touch.
+ *
+ * Focus rules (shared with the map):
+ *   - while the algorithm runs, the current vertex and the neighbors it is
+ *     checking are highlighted, and only the edges being checked animate;
+ *   - otherwise the hovered or selected vertex is in focus, its edges and
+ *     neighbors are emphasized, and unrelated vertices are muted.
  */
 export default function GraphSVG({
   graph,
   coloring = {},
-  highlight = { active: null, neighbors: EMPTY, phase: 0 },
+  highlight = { active: null, neighbors: EMPTY, phase: 0, recent: null },
   selected = null,
   onSelect,
   conflicts = { vertices: EMPTY, edges: EMPTY },
   nodeRadius,
   draggable = true,
+  phaseMs = 600,
   className = '',
   ariaLabel,
 }) {
@@ -38,6 +48,8 @@ export default function GraphSVG({
   const [moved, setMoved] = useState(false);
   const svgRef = useRef(null);
   const drag = useRef(null);
+  const reduceMotion = useReducedMotion();
+  const t = phaseTiming(phaseMs);
 
   // A different dataset means a different set of nodes: start from its layout.
   useEffect(() => {
@@ -45,14 +57,16 @@ export default function GraphSVG({
     setMoved(false);
   }, [graph]);
 
-  // During the animation the current vertex is in focus; otherwise the selection is.
-  const focus = highlight.active ?? selected;
+  const animating = Boolean(highlight.active);
+  // During the animation the current vertex is in focus; otherwise hover, then selection.
+  const focus = highlight.active ?? (drag.current?.moved ? null : hovered) ?? selected;
   const focusNeighbors = useMemo(() => {
-    if (highlight.active) return highlight.neighbors;
-    if (selected) return new Set(graph.adjacency[selected] ?? []);
+    if (highlight.active) return highlight.phase >= 1 ? highlight.neighbors : EMPTY;
+    if (focus) return new Set(graph.adjacency[focus] ?? []);
     return EMPTY;
-  }, [highlight, selected, graph]);
-  const dimOthers = !highlight.active && Boolean(selected);
+  }, [highlight, focus, graph]);
+  const dimOthers = !animating && Boolean(focus);
+  const checkingEdges = animating && highlight.phase >= 1 && highlight.phase <= 2;
 
   const toSvgPoint = (event) => {
     const svg = svgRef.current;
@@ -96,18 +110,24 @@ export default function GraphSVG({
     if (d && !d.moved) onSelect?.(selected === d.vertex ? null : d.vertex);
   };
 
-  // Draw focused vertices last so their rings sit on top.
+  // Draw the current / selected vertex and conflicts last so their rings sit
+  // on top. Hover is deliberately ignored here: re-ordering the element under
+  // the pointer would make the browser fire spurious enter/leave events.
+  const pinned = highlight.active ?? selected;
   const drawOrder = useMemo(() => {
+    const pinnedNeighbors = new Set(pinned ? graph.adjacency[pinned] ?? [] : []);
     const weight = (v) =>
-      (conflicts.vertices.has(v) ? 4 : 0) + (v === focus ? 3 : 0) + (focusNeighbors.has(v) ? 1 : 0);
+      (conflicts.vertices.has(v) ? 4 : 0) + (v === pinned ? 3 : 0) + (pinnedNeighbors.has(v) ? 1 : 0);
     return [...graph.vertices].sort((a, b) => weight(a) - weight(b));
-  }, [graph.vertices, conflicts.vertices, focus, focusNeighbors]);
+  }, [graph, conflicts.vertices, pinned]);
 
   const hoveredPos = hovered && positions[hovered];
   const tipText = hovered
-    ? `${hovered} · deg ${graph.adjacency[hovered]?.length ?? 0}${coloring[hovered] ? ` · Color ${coloring[hovered]}` : ''}`
+    ? `${hovered} · degree ${graph.adjacency[hovered]?.length ?? 0} · ${coloring[hovered] ? `Color ${coloring[hovered]}` : 'uncolored'}`
     : '';
-  const tipWidth = tipText.length * 6.7 + 20;
+  const tipWidth = tipText.length * 6.6 + 22;
+  const tipX = hoveredPos ? clamp(hoveredPos.x, box.x + tipWidth / 2 + 4, box.x + box.w - tipWidth / 2 - 4) : 0;
+  const tipAbove = hoveredPos ? hoveredPos.y - r - 18 > box.y + 14 : true;
 
   return (
     <div className={`graph-svg-wrap ${className}`}>
@@ -115,7 +135,7 @@ export default function GraphSVG({
         ref={svgRef}
         className="graph-svg"
         viewBox={`${box.x} ${box.y} ${box.w} ${box.h}`}
-        role="img"
+        role="group"
         aria-label={ariaLabel ?? `Graph with ${graph.vertices.length} vertices and ${graph.edges.length} edges`}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -123,7 +143,7 @@ export default function GraphSVG({
       >
         <defs>
           <pattern id="graph-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="1" fill="#D9DFEA" />
+            <circle cx="1" cy="1" r="1" fill="#DCE2EC" />
           </pattern>
         </defs>
         <rect
@@ -145,23 +165,23 @@ export default function GraphSVG({
             const isConflict = conflicts.edges.has(key);
             const touchesFocus =
               (u === focus && focusNeighbors.has(v)) || (v === focus && focusNeighbors.has(u));
+            const checking = checkingEdges && touchesFocus;
             const faded = dimOthers && !touchesFocus && !isConflict;
             return (
-              <motion.line
+              <line
                 key={key}
+                className={`graph-edge ${checking && !reduceMotion ? 'edge-flow' : ''}`}
                 x1={a.x}
                 y1={a.y}
                 x2={b.x}
                 y2={b.y}
                 strokeLinecap="round"
-                strokeDasharray={isConflict ? '7 5' : undefined}
-                initial={false}
-                animate={{
-                  stroke: isConflict ? CONFLICT_RED : touchesFocus ? (highlight.active ? NEIGHBOR_RING : '#3157D5') : '#B8C2D6',
-                  strokeWidth: isConflict ? 4 : touchesFocus ? 3.2 : 1.6,
-                  opacity: faded ? 0.25 : 1,
+                strokeDasharray={isConflict ? '7 5' : checking ? '6 5' : undefined}
+                style={{
+                  stroke: isConflict ? CONFLICT_RED : checking ? NEIGHBOR_RING : touchesFocus ? '#3157D5' : '#B8C2D6',
+                  strokeWidth: isConflict ? 4 : touchesFocus ? 3 : 1.6,
+                  opacity: faded ? 0.18 : 1,
                 }}
-                transition={{ duration: 0.25 }}
               />
             );
           })}
@@ -175,17 +195,24 @@ export default function GraphSVG({
             const color = coloring[v];
             const isActive = v === highlight.active;
             const isSelected = v === selected;
+            const isHovered = v === hovered;
             const isNeighbor = focusNeighbors.has(v);
             const isConflict = conflicts.vertices.has(v);
-            const faded = dimOthers && !isSelected && !isNeighbor && !isConflict;
-            const justAssigned = isActive && highlight.phase === 3;
-            const fill = color ? colorFill(color) : isNeighbor && highlight.active ? NEIGHBOR_FILL : isActive ? '#EEEAFE' : NEUTRAL_FILL;
+            const faded = dimOthers && v !== focus && !isNeighbor && !isConflict;
+            const justAssigned = isActive && highlight.phase === 3 && color;
+            const fill = color
+              ? colorFill(color)
+              : isActive
+                ? ACTIVE_FILL
+                : isNeighbor && animating
+                  ? NEIGHBOR_FILL
+                  : NEUTRAL_FILL;
             const stroke = isConflict
               ? CONFLICT_RED
               : isActive
                 ? ACTIVE_RING
                 : isSelected
-                  ? '#172033'
+                  ? SELECT_RING
                   : isNeighbor
                     ? NEIGHBOR_RING
                     : '#FFFFFF';
@@ -197,7 +224,7 @@ export default function GraphSVG({
                 className={`graph-node ${draggable ? 'draggable' : ''}`}
                 role="button"
                 tabIndex={0}
-                aria-label={`${v}${color ? `, color ${color}` : ', uncolored'}, degree ${graph.adjacency[v].length}`}
+                aria-label={`${v}, degree ${graph.adjacency[v].length}, ${color ? `color ${color}` : 'uncolored'}${isConflict ? ', in conflict' : ''}`}
                 aria-pressed={isSelected}
                 onPointerDown={(e) => handlePointerDown(v, e)}
                 onPointerEnter={() => setHovered(v)}
@@ -210,29 +237,16 @@ export default function GraphSVG({
                     onSelect?.(isSelected ? null : v);
                   }
                 }}
-                style={{ opacity: faded ? 0.35 : 1 }}
+                style={{ opacity: faded ? 0.32 : 1 }}
               >
-                {isConflict && (
-                  <motion.circle
+                {(isConflict || isActive) && (
+                  <circle
+                    className={isConflict ? 'node-halo conflict' : 'node-halo active'}
                     r={r + 7}
-                    fill="none"
-                    stroke={CONFLICT_RED}
-                    strokeWidth={3}
-                    animate={{ opacity: [0.9, 0.2, 0.9], scale: [1, 1.18, 1] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
+                    fill={isConflict ? CONFLICT_RED : ACTIVE_RING}
                   />
                 )}
-                {isActive && (
-                  <motion.circle
-                    r={r + 6}
-                    fill="none"
-                    stroke={ACTIVE_RING}
-                    strokeWidth={3}
-                    animate={{ opacity: [0.8, 0.15, 0.8], scale: [1, 1.2, 1] }}
-                    transition={{ duration: 1.1, repeat: Infinity }}
-                  />
-                )}
-                {justAssigned && (
+                {justAssigned && !reduceMotion && (
                   <motion.circle
                     key={`ripple-${color}`}
                     r={r}
@@ -241,30 +255,33 @@ export default function GraphSVG({
                     strokeWidth={4}
                     initial={{ scale: 1, opacity: 0.9 }}
                     animate={{ scale: 2, opacity: 0 }}
-                    transition={{ duration: 0.8 }}
+                    transition={{ duration: t.glow, delay: t.fill * 0.5 }}
                   />
                 )}
-                <motion.circle
-                  r={r}
+                <motion.g
                   initial={false}
-                  animate={{
-                    fill,
-                    stroke,
-                    strokeWidth: isActive || isConflict || isSelected ? 3.5 : isNeighbor ? 3 : 2,
-                    scale: isActive ? 1.14 : isSelected ? 1.08 : 1,
-                  }}
-                  transition={{ duration: 0.45 }}
-                  style={{ filter: 'drop-shadow(0 2px 3px rgba(23,32,51,0.18))' }}
-                />
-                <text
-                  className="node-label"
-                  textAnchor="middle"
-                  dy="0.35em"
-                  fontSize={r * 0.72}
-                  fill={color ? '#FFFFFF' : '#172033'}
+                  animate={{ scale: isActive ? 1.16 : isHovered ? 1.12 : isSelected ? 1.08 : 1 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  {graph.labels[v] ?? v}
-                </text>
+                  <motion.circle
+                    r={r}
+                    initial={false}
+                    animate={{ fill }}
+                    transition={{ duration: justAssigned ? t.fill : t.ui }}
+                    stroke={stroke}
+                    strokeWidth={isActive || isConflict || isSelected ? 3.5 : isNeighbor ? 3 : 2}
+                    className="node-circle"
+                  />
+                  <text
+                    className={`node-label ${color && colorInk(color) === '#FFFFFF' ? 'on-dark' : ''}`}
+                    textAnchor="middle"
+                    dy="0.35em"
+                    fontSize={r * 0.72}
+                    fill={color ? colorInk(color) : '#172033'}
+                  >
+                    {graph.labels[v] ?? v}
+                  </text>
+                </motion.g>
               </g>
             );
           })}
@@ -278,10 +295,11 @@ export default function GraphSVG({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
               pointerEvents="none"
-              transform={`translate(${hoveredPos.x} ${hoveredPos.y - r - 16})`}
+              transform={`translate(${tipX} ${tipAbove ? hoveredPos.y - r - 18 : hoveredPos.y + r + 26})`}
             >
-              <rect x={-tipWidth / 2} y={-15} width={tipWidth} height={24} rx={7} fill="#172033" opacity={0.92} />
+              <rect x={-tipWidth / 2} y={-15} width={tipWidth} height={25} rx={7} fill="#172033" opacity={0.94} />
               <text className="tooltip-text" textAnchor="middle" dy="0.1em" fontSize="12" fill="#fff">
                 {tipText}
               </text>

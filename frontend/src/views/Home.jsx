@@ -96,18 +96,24 @@ export default function Home({ cs, navigate }) {
           <motion.span className="eyebrow" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             DSA Project · Graph Theory
           </motion.span>
-          <h1>Interactive Map Coloring System</h1>
-          <p className="hero-tagline">See graph theory come alive.</p>
-          <p className="hero-desc">
-            Explore how the <strong>Greedy Graph Coloring</strong> algorithm assigns colors to connected regions while
-            ensuring that neighboring regions never share the same color.
-          </p>
+          <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+            Interactive Map Coloring System
+          </motion.h1>
+          <motion.p className="hero-tagline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+            See Graph Theory Come Alive.
+          </motion.p>
+          <motion.p className="hero-desc" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
+            Every state of India becomes a <strong>vertex</strong>, and every shared border becomes an{' '}
+            <strong>edge</strong>. A <strong>Greedy Graph Coloring</strong> algorithm, running in Python, then gives
+            each state the smallest color its neighbors are not using, so no two neighboring states ever look the
+            same. You watch each of its decisions, step by step.
+          </motion.p>
           <div className="hero-actions">
             <Button icon={Play} size="lg" onClick={startColoring}>
               Start Coloring
             </Button>
             <Button variant="secondary" size="lg" icon={BookOpen} onClick={() => navigate('how')}>
-              Explore Algorithm
+              How It Works
             </Button>
           </div>
         </div>

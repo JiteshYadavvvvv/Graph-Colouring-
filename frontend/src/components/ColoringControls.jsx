@@ -1,6 +1,7 @@
-import { ChevronsRight, Pause, Play, RotateCcw, StepForward } from 'lucide-react';
-import { SPEED_NAMES, STRATEGIES } from '../utils/constants';
+import { ArrowDownWideNarrow, ChevronsRight, Gauge, Pause, Play, RotateCcw, StepForward } from 'lucide-react';
+import { SPEEDS, STRATEGIES } from '../utils/constants';
 import Button from './Button';
+import Segmented from './Segmented';
 
 /** Run / pause / step / finish / reset controls plus speed and vertex order. */
 export default function ColoringControls({ coloringState }) {
@@ -20,7 +21,7 @@ export default function ColoringControls({ coloringState }) {
           className="btn-run"
           aria-label={runState === 'done' ? 'Run greedy coloring again' : 'Run greedy coloring'}
         >
-          {runState === 'done' ? 'Run Again' : busy ? 'Starting…' : 'Run Greedy Coloring'}
+          {runState === 'done' ? 'Run Again' : busy ? 'Starting…' : animating ? 'Restart' : 'Run Greedy Coloring'}
         </Button>
         <Button
           variant="secondary"
@@ -28,6 +29,7 @@ export default function ColoringControls({ coloringState }) {
           onClick={togglePause}
           disabled={!animating}
           aria-label={runState === 'paused' ? 'Resume animation' : 'Pause animation'}
+          className="btn-pause"
         >
           {runState === 'paused' ? 'Resume' : 'Pause'}
         </Button>
@@ -36,8 +38,8 @@ export default function ColoringControls({ coloringState }) {
           icon={StepForward}
           onClick={stepForward}
           disabled={busy || runState === 'done'}
-          title="Advance one micro-step (select → check neighbors → choose → assign)"
-          aria-label="Advance one step"
+          title="Advance one phase (select → check neighbors → choose → assign)"
+          aria-label="Advance one phase"
         >
           Step
         </Button>
@@ -47,47 +49,45 @@ export default function ColoringControls({ coloringState }) {
           onClick={skipToEnd}
           disabled={busy || runState === 'done'}
           aria-label="Skip to the final coloring"
-        >
-          Finish
-        </Button>
-        <Button variant="ghost" icon={RotateCcw} onClick={reset} aria-label="Reset coloring">
-          Reset
-        </Button>
+          title="Finish: skip to the final coloring"
+          className="btn-icon"
+        />
+        <Button
+          variant="ghost"
+          icon={RotateCcw}
+          onClick={reset}
+          aria-label="Reset coloring"
+          title="Reset: clear the coloring and start over"
+          className="btn-icon"
+        />
       </div>
 
       <div className="control-settings">
-        <label className="range-field">
-          <span className="range-label">
-            Speed <strong>{SPEED_NAMES[speed - 1]}</strong>
+        <div className="setting">
+          <Gauge size={16} className="muted" aria-hidden="true" />
+          <Segmented
+            options={SPEEDS.map((s) => ({ value: s.id, label: s.label, title: `${s.label}: ${s.ms} ms per phase` }))}
+            value={speed}
+            onChange={setSpeed}
+            ariaLabel="Animation speed"
+          />
+        </div>
+        <label className="setting" title="Order in which greedy visits the vertices">
+          <ArrowDownWideNarrow size={16} className="muted" aria-hidden="true" />
+          <span className="select-wrap">
+            <select
+              value={strategy}
+              onChange={(e) => setStrategy(e.target.value)}
+              disabled={busy}
+              aria-label="Vertex ordering strategy"
+            >
+              {STRATEGIES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
           </span>
-          <span className="range-row">
-            <span className="muted small">Slow</span>
-            <input
-              type="range"
-              min="1"
-              max="5"
-              step="1"
-              value={speed}
-              onChange={(e) => setSpeed(Number(e.target.value))}
-              aria-label="Animation speed"
-            />
-            <span className="muted small">Fast</span>
-          </span>
-        </label>
-        <label className="select-field compact">
-          <span>Vertex order</span>
-          <select
-            value={strategy}
-            onChange={(e) => setStrategy(e.target.value)}
-            disabled={busy}
-            aria-label="Vertex ordering strategy"
-          >
-            {STRATEGIES.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
         </label>
       </div>
     </div>

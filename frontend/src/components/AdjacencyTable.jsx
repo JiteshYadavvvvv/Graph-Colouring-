@@ -1,6 +1,7 @@
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import ColorChip from './ColorChip';
+import Segmented from './Segmented';
 
 /** Adjacency list received from the backend, shown as a tree or as a table. */
 export default function AdjacencyTable({ graph, coloring = {}, selected, onSelect }) {
@@ -36,19 +37,16 @@ export default function AdjacencyTable({ graph, coloring = {}, selected, onSelec
               aria-label="Filter adjacency list"
             />
           </label>
-          <div className="segmented" role="tablist" aria-label="Adjacency display mode">
-            {['tree', 'table'].map((m) => (
-              <button
-                key={m}
-                role="tab"
-                aria-selected={mode === m}
-                className={mode === m ? 'active' : ''}
-                onClick={() => setMode(m)}
-              >
-                {m === 'tree' ? 'Tree' : 'Table'}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            ariaLabel="Adjacency display mode"
+            size="sm"
+            options={[
+              { value: 'tree', label: 'Tree' },
+              { value: 'table', label: 'Table' },
+            ]}
+            value={mode}
+            onChange={setMode}
+          />
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, CircleDashed, Cpu, Sparkles } from 'lucide-react';
+import { ArrowDown, Check, CircleDashed, Cpu, Sparkles } from 'lucide-react';
 import { PHASE_LABELS } from '../utils/constants';
 import { colorFill, pad2 } from '../utils/helpers';
 import ColorChip from './ColorChip';
@@ -158,7 +158,19 @@ export default function StepPanel({ coloringState }) {
         </Section>
       </div>
 
-      <Section title="Assigned" reached={phase >= 3}>
+      {phase >= 2 && (
+        <motion.div
+          className="decision"
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ '--chip': colorFill(step.assigned_color) }}
+        >
+          <ArrowDown size={14} aria-hidden="true" />
+          Smallest available color = <strong>{step.assigned_color}</strong>
+        </motion.div>
+      )}
+
+      <Section title={phase >= 3 ? 'Assigned' : 'Assigning'} reached={phase >= 3}>
         <motion.div
           className="assigned"
           initial={{ scale: 0.8, opacity: 0 }}

@@ -33,12 +33,18 @@ export default function ConflictBanner({ verification, verifying }) {
       <div key="conflict" className="banner banner-danger" role="alert">
         <TriangleAlert size={22} aria-hidden="true" />
         <div>
-          <strong>
-            Conflict Detected: {verification.conflicts.length} conflicting edge{verification.conflicts.length > 1 ? 's' : ''}
+          <strong className="banner-title">
+            Conflict detected
+            {verification.conflicts.length > 1 && (
+              <span className="pill pill-danger">{verification.conflicts.length} conflicting edges</span>
+            )}
           </strong>
+          <p className="conflict-pair">
+            {first.region_a} <span aria-label="and">↔</span> {first.region_b}
+          </p>
           <p>
-            <b>{first.region_a}</b> and <b>{first.region_b}</b> both use <b>Color {first.color}</b>. These regions
-            share an edge in the graph.
+            Both use <b>Color {first.color}</b> and share a border, which is an edge in the graph. The backend found
+            this by checking all {verification.checked_edges} edges.
           </p>
           {rest.length > 0 && (
             <p className="small">

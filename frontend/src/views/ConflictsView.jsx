@@ -3,8 +3,7 @@ import { Bug, ScanSearch, ShieldCheck, Undo2, Zap } from 'lucide-react';
 import Button from '../components/Button';
 import ColorChip from '../components/ColorChip';
 import ConflictBanner from '../components/ConflictBanner';
-import GraphSVG from '../visualization/GraphSVG';
-import IndiaMapSVG from '../visualization/IndiaMapSVG';
+import VizStage from '../components/VizStage';
 
 export default function ConflictsView({ cs }) {
   const { graph, result, runState, coloring, verification, verifying, simulated } = cs;
@@ -86,14 +85,7 @@ export default function ConflictsView({ cs }) {
 
       <div className="viz-layout">
         <div className="viz-main">
-          <div className="card viz-card">
-            <h3 className="card-title">Conflicts highlighted</h3>
-            {graph.kind === 'map' ? (
-              <IndiaMapSVG graph={graph} coloring={coloring} conflicts={cs.conflicts} selected={cs.selected} onSelect={cs.setSelected} showEdges={Boolean(verification?.conflicts.length)} />
-            ) : (
-              <GraphSVG key={graph.key} graph={graph} coloring={coloring} conflicts={cs.conflicts} selected={cs.selected} onSelect={cs.setSelected} />
-            )}
-          </div>
+          <VizStage cs={cs} title="Conflicts highlighted" edges="conflicts" defaultMode="split" />
         </div>
         <aside className="viz-side">
           <div className="card">

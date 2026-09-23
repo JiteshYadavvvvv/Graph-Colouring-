@@ -7,8 +7,9 @@ Docs: http://127.0.0.1:8000/docs
 
 import time
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from algorithms.coloring import (
     ORDER_STRATEGIES,
@@ -43,6 +44,15 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unexpected_error(request: Request, exc: Exception):
+    # Never send a stack trace to the browser; uvicorn still logs the error.
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "The coloring engine hit an unexpected error. Please try again."},
+    )
 
 
 def _require_dataset(key: str) -> dict:

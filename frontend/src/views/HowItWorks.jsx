@@ -6,7 +6,7 @@ import Button from '../components/Button';
 import ColorChip from '../components/ColorChip';
 import LoadingState, { ErrorState } from '../components/LoadingState';
 import Pseudocode from '../components/Pseudocode';
-import { PALETTE } from '../utils/constants';
+import { PALETTE, PHASE_LABELS, speedMs } from '../utils/constants';
 import GraphSVG from '../visualization/GraphSVG';
 
 const CONCEPTS = [
@@ -51,10 +51,31 @@ function describe(step) {
   return `neighbors use ${step.used_colors.join(', ')}${blocked ? `, so Color ${blocked} ${step.rejected_colors.length > 1 ? 'are' : 'is'} unavailable` : ''}`;
 }
 
-/** Replays the backend's steps for the 5-vertex tutorial graph. */
+const TICKS = 4; // one tick per phase: select, inspect, choose, assign
+const TUTORIAL_MS = speedMs('normal');
+
+function phaseMessage(step, phase) {
+  const colored = Object.entries(step.neighbor_colors);
+  if (phase === 0) return `Select vertex ${step.vertex} (step ${step.step}).`;
+  if (phase === 1) {
+    if (!step.neighbors.length) return `${step.vertex} has no neighbors.`;
+    const parts = step.neighbors.map((n) =>
+      step.neighbor_colors[n] ? `${n} has Color ${step.neighbor_colors[n]}` : `${n} is not colored yet`,
+    );
+    return `Inspect the neighbors of ${step.vertex}: ${parts.join(', ')}.`;
+  }
+  if (phase === 2) {
+    return colored.length
+      ? `Colors ${step.used_colors.join(', ')} are taken by neighbors, so the smallest unused color is ${step.assigned_color}.`
+      : `No neighbor is colored, so the smallest unused color is ${step.assigned_color}.`;
+  }
+  return `${step.vertex} is colored with Color ${step.assigned_color}.`;
+}
+
+/** Replays the backend's steps for the 5-vertex tutorial graph, phase by phase. */
 function MiniDemo() {
   const [data, setData] = useState({ status: 'loading' });
-  const [position, setPosition] = useState(0); // 0 … 2n (two ticks per vertex)
+  const [position, setPosition] = useState(0); // 0 … TICKS·n
   const [playing, setPlaying] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
@@ -70,9 +91,9 @@ function MiniDemo() {
   }, [attempt]);
 
   const steps = data.result?.steps ?? [];
-  const end = steps.length * 2;
-  const stepIndex = Math.floor(position / 2);
-  const assigned = position % 2 === 1;
+  const end = steps.length * TICKS;
+  const stepIndex = Math.floor(position / TICKS);
+  const phase = position % TICKS;
   const active = position < end ? steps[stepIndex] : null;
 
   useEffect(() => {
@@ -81,25 +102,26 @@ function MiniDemo() {
       setPlaying(false);
       return undefined;
     }
-    const timer = setTimeout(() => setPosition((p) => p + 1), 1100);
+    const timer = setTimeout(() => setPosition((p) => p + 1), TUTORIAL_MS);
     return () => clearTimeout(timer);
   }, [playing, position, end]);
 
   const coloring = useMemo(() => {
     const c = {};
     steps.forEach((s, i) => {
-      if (i < stepIndex || (i === stepIndex && assigned)) c[s.vertex] = s.assigned_color;
+      if (i < stepIndex || (i === stepIndex && phase === 3)) c[s.vertex] = s.assigned_color;
     });
     return c;
-  }, [steps, stepIndex, assigned]);
+  }, [steps, stepIndex, phase]);
 
   const highlight = useMemo(
     () => ({
       active: active?.vertex ?? null,
-      neighbors: new Set(active ? active.neighbors : []),
-      phase: assigned ? 3 : 1,
+      neighbors: new Set(active && phase >= 1 ? active.neighbors : []),
+      phase,
+      recent: null,
     }),
-    [active, assigned],
+    [active, phase],
   );
 
   if (data.status === 'loading') return <LoadingState label="Loading tutorial graph…" />;
@@ -114,15 +136,42 @@ function MiniDemo() {
           <h3 className="card-title">Live walkthrough</h3>
           <span className="muted small">Steps from POST /api/color (dataset “mini”)</span>
         </div>
-        <GraphSVG graph={data.graph} coloring={coloring} highlight={highlight} nodeRadius={26} draggable={false} />
+        <ol className="phase-track mini-phases" aria-label="Phase of the current step">
+          {PHASE_LABELS.map((label, i) => (
+            <li key={label} className={active ? (i < phase ? 'past' : i === phase ? 'now' : '') : ''}>
+              <span className="phase-dot">{i + 1}</span>
+              <span className="phase-label">{label}</span>
+            </li>
+          ))}
+        </ol>
+        <GraphSVG
+          graph={data.graph}
+          coloring={coloring}
+          highlight={highlight}
+          nodeRadius={26}
+          draggable={false}
+          phaseMs={TUTORIAL_MS}
+        />
+        {active && phase >= 2 && (
+          <div className="mini-chips">
+            <span className="muted small">Taken</span>
+            {active.used_colors.length ? (
+              active.used_colors.map((c) => <ColorChip key={c} color={c} state="blocked" label={`Color ${c} is taken`} />)
+            ) : (
+              <span className="muted small">none</span>
+            )}
+            <span className="muted small">Smallest unused</span>
+            <ColorChip color={active.assigned_color} state="chosen" label={`Color ${active.assigned_color}`} />
+          </div>
+        )}
         <div className="mini-controls">
-          <Button variant="secondary" size="sm" icon={StepBack} onClick={() => { setPlaying(false); setPosition((p) => Math.max(0, p - 1)); }} disabled={position === 0} aria-label="Previous">
+          <Button variant="secondary" size="sm" icon={StepBack} onClick={() => { setPlaying(false); setPosition((p) => Math.max(0, p - 1)); }} disabled={position === 0} aria-label="Previous phase">
             Back
           </Button>
           <Button size="sm" icon={playing ? Pause : Play} onClick={() => { if (position >= end) setPosition(0); setPlaying((p) => !p); }}>
             {playing ? 'Pause' : position >= end ? 'Replay' : 'Play'}
           </Button>
-          <Button variant="secondary" size="sm" icon={StepForward} onClick={() => { setPlaying(false); setPosition((p) => Math.min(end, p + 1)); }} disabled={position >= end} aria-label="Next">
+          <Button variant="secondary" size="sm" icon={StepForward} onClick={() => { setPlaying(false); setPosition((p) => Math.min(end, p + 1)); }} disabled={position >= end} aria-label="Next phase">
             Next
           </Button>
           <Button variant="ghost" size="sm" icon={RotateCcw} onClick={() => { setPlaying(false); setPosition(0); }}>
@@ -134,12 +183,13 @@ function MiniDemo() {
       <div className="mini-side">
         <ol className="walk-list">
           {steps.map((s, i) => {
-            const state = i < stepIndex || (i === stepIndex && assigned) ? 'done' : i === stepIndex && position < end ? 'current' : '';
+            const done = i < stepIndex || (i === stepIndex && phase === 3);
+            const state = done ? 'done' : i === stepIndex && position < end ? 'current' : '';
             return (
               <motion.li key={s.vertex} className={`walk-item ${state}`} layout>
                 <span className="walk-num">Step {s.step}</span>
                 <span className="walk-text">
-                  <strong>{s.vertex}</strong>: {describe(s)} → {state ? <ColorChip color={s.assigned_color} /> : null}
+                  <strong>{s.vertex}</strong>: {describe(s)} → {done ? <ColorChip color={s.assigned_color} /> : null}
                   <strong>Color {s.assigned_color}</strong>
                 </span>
               </motion.li>
@@ -153,17 +203,16 @@ function MiniDemo() {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            aria-live="polite"
           >
             {active
-              ? assigned
-                ? `${active.vertex} gets Color ${active.assigned_color}. ${active.message}`
-                : `Looking at ${active.vertex}: checking neighbors ${active.neighbors.join(', ')}.`
+              ? phaseMessage(active, phase)
               : position === 0
                 ? 'Press Play or Next to begin.'
                 : `Done: ${data.result.colors_used} colors, valid = ${data.result.valid}.`}
           </motion.p>
         </AnimatePresence>
-        <Pseudocode phase={active ? (assigned ? 3 : 1) : null} />
+        <Pseudocode phase={active ? phase : null} />
       </div>
     </div>
   );

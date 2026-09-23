@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { checkConflicts, getDatasets, getGraph, runColoring } from '../api/client';
-import { SPEED_DELAYS } from '../utils/constants';
+import { DEFAULT_SPEED, speedMs } from '../utils/constants';
 import { coloringAtCursor, edgeKey } from '../utils/helpers';
 
 const START = { step: -1, phase: 0 };
@@ -30,7 +30,7 @@ export function useColoring() {
   const [result, setResult] = useState(null);
   const [runState, setRunState] = useState('idle');
   const [cursor, setCursor] = useState(START);
-  const [speed, setSpeed] = useState(3);
+  const [speed, setSpeed] = useState(DEFAULT_SPEED);
   const [selected, setSelected] = useState(null);
   const [simulated, setSimulated] = useState(null);
   const [verification, setVerification] = useState(null);
@@ -163,12 +163,15 @@ export function useColoring() {
   }, [result, cursor, finishPlayback]);
 
   // ---- Playback clock: one phase per tick while playing ----
+  // The only timer in the app's playback. Pausing, resetting, finishing, or
+  // unmounting clears it through the effect cleanup, so no stray tick can
+  // fire after the state it belonged to is gone.
+  const phaseMs = speedMs(speed);
   useEffect(() => {
     if (runState !== 'playing') return undefined;
-    const delay = SPEED_DELAYS[speed - 1] * (cursor.phase === LAST_PHASE ? 1.25 : 1);
-    const timer = setTimeout(advance, delay);
+    const timer = setTimeout(advance, phaseMs);
     return () => clearTimeout(timer);
-  }, [runState, advance, speed, cursor.phase]);
+  }, [runState, advance, phaseMs]);
 
   const togglePause = useCallback(() => {
     setRunState((state) => (state === 'playing' ? 'paused' : state === 'paused' ? 'playing' : state));
@@ -232,14 +235,20 @@ export function useColoring() {
   const completedSteps =
     runState === 'done' ? totalSteps : Math.max(0, cursor.step + (cursor.phase === LAST_PHASE ? 1 : 0));
 
-  const highlight = useMemo(
-    () => ({
+  // One highlight object is shared by the map, the graph, and the panels, so
+  // every view always agrees on the current vertex and its neighbors.
+  const highlight = useMemo(() => {
+    let recent = null; // the most recently colored vertex (its halo fades out)
+    if (animating && result) {
+      recent = cursor.phase === LAST_PHASE ? activeStep?.vertex : result.steps[cursor.step - 1]?.vertex;
+    }
+    return {
       active: activeStep?.vertex ?? null,
       neighbors: new Set(activeStep && cursor.phase >= 1 ? activeStep.neighbors : []),
       phase: cursor.phase,
-    }),
-    [activeStep, cursor.phase],
-  );
+      recent: recent ?? null,
+    };
+  }, [activeStep, animating, result, cursor]);
 
   const conflicts = useMemo(
     () => ({
@@ -269,6 +278,7 @@ export function useColoring() {
     completedSteps,
     speed,
     setSpeed,
+    phaseMs,
     run,
     togglePause,
     stepForward,

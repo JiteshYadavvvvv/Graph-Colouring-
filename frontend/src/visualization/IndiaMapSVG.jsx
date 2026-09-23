@@ -1,272 +1,448 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { memo, useId, useMemo, useRef, useState } from 'react';
+import INDIA_GEOMETRY from '../data/indiaGeometry';
 import {
+  ACTIVE_FILL,
   ACTIVE_RING,
   CONFLICT_RED,
+  CONTEXT_FILL,
   NEIGHBOR_FILL,
   NEIGHBOR_RING,
   NEUTRAL_FILL,
+  SELECT_RING,
+  phaseTiming,
 } from '../utils/constants';
-import { colorFill, edgeKey, slug } from '../utils/helpers';
+import { colorFill, colorInk, edgeKey } from '../utils/helpers';
 
 /*
- * Stylized, hand-drawn geometry for each state (not GIS-accurate).
+ * Real state / UT boundaries, generated from GIS data by
+ * tools/build_india_map.py and stored locally (no map service at runtime).
  *
- * This file contains SHAPES ONLY. Which states are adjacent comes from the
- * backend graph (GET /api/graph/india). The polygons were drawn so that two
- * shapes share a border segment exactly when the backend lists them as
- * neighbors, which was checked with a script during development.
+ * This file draws SHAPES ONLY. Which states are adjacent always comes from
+ * the backend graph (GET /api/graph/india). Regions are matched to graph
+ * vertices through their state code (graph.labels[vertex] === region.id).
  */
-const SHAPES = {
-  Punjab: [[135, 140], [130, 100], [200, 70], [215, 110], [205, 140], [170, 160]],
-  'Himachal Pradesh': [[200, 70], [240, 40], [285, 60], [275, 105], [240, 120], [215, 110]],
-  Uttarakhand: [[285, 60], [320, 80], [345, 115], [330, 150], [290, 150], [275, 105]],
-  Haryana: [[215, 110], [240, 120], [250, 150], [255, 200], [225, 215], [205, 185], [205, 140]],
-  Rajasthan: [[70, 220], [100, 170], [135, 140], [170, 160], [205, 140], [205, 185], [225, 215], [255, 200], [280, 250], [270, 290], [230, 310], [180, 300], [140, 290], [100, 260]],
-  'Uttar Pradesh': [[240, 120], [275, 105], [290, 150], [330, 150], [360, 175], [410, 200], [420, 240], [400, 270], [360, 280], [330, 300], [300, 280], [280, 250], [255, 200], [250, 150]],
-  Bihar: [[410, 200], [460, 210], [490, 225], [480, 255], [440, 265], [400, 270], [420, 240]],
-  'West Bengal': [[495, 180], [515, 185], [515, 240], [525, 290], [510, 330], [480, 320], [470, 300], [480, 255], [490, 225]],
-  Jharkhand: [[360, 280], [400, 270], [440, 265], [480, 255], [470, 300], [440, 320], [400, 330], [370, 310]],
-  Odisha: [[400, 330], [440, 320], [470, 300], [480, 320], [470, 360], [440, 400], [400, 420], [370, 410], [390, 370]],
-  Chhattisgarh: [[330, 300], [360, 280], [370, 310], [400, 330], [390, 370], [370, 410], [345, 420], [320, 390], [315, 340]],
-  'Madhya Pradesh': [[230, 310], [270, 290], [280, 250], [300, 280], [330, 300], [315, 340], [290, 350], [240, 350], [210, 330]],
-  Gujarat: [[100, 260], [140, 290], [180, 300], [230, 310], [210, 330], [200, 360], [170, 380], [130, 350], [90, 330], [60, 290]],
-  Maharashtra: [[200, 360], [210, 330], [240, 350], [290, 350], [315, 340], [320, 390], [300, 420], [260, 440], [230, 450], [205, 440], [195, 400]],
-  Goa: [[205, 440], [230, 450], [225, 470], [205, 465]],
-  Telangana: [[320, 390], [345, 420], [360, 450], [330, 470], [300, 460], [300, 420]],
-  'Andhra Pradesh': [[345, 420], [370, 410], [400, 420], [390, 450], [370, 490], [340, 520], [320, 540], [300, 530], [310, 500], [330, 470], [360, 450]],
-  Karnataka: [[230, 450], [260, 440], [300, 420], [300, 460], [330, 470], [310, 500], [300, 530], [270, 540], [245, 520], [225, 470]],
-  Kerala: [[245, 520], [270, 540], [285, 590], [275, 620], [255, 580]],
-  'Tamil Nadu': [[300, 530], [320, 540], [330, 580], [310, 620], [285, 640], [275, 620], [285, 590], [270, 540]],
-};
 
-// Label anchor points (centroid, hand-adjusted for thin shapes).
-const LABEL_AT = {
-  Punjab: [172, 118], 'Himachal Pradesh': [243, 80], Uttarakhand: [308, 112], Haryana: [228, 168],
-  Rajasthan: [170, 228], 'Uttar Pradesh': [330, 212], Bihar: [447, 237], 'West Bengal': [501, 268],
-  Jharkhand: [421, 294], Odisha: [432, 364], Chhattisgarh: [355, 353], 'Madhya Pradesh': [272, 316],
-  Gujarat: [140, 322], Maharashtra: [255, 395], Goa: [216, 457], Telangana: [327, 436],
-  'Andhra Pradesh': [360, 480], Karnataka: [272, 484], Kerala: [266, 575], 'Tamil Nadu': [301, 585],
-};
-
-const VIEWBOX = '40 25 510 635';
+const { width: MAP_W, height: MAP_H } = INDIA_GEOMETRY;
 const EMPTY = new Set();
 
-const toPath = (points) => `M${points.map(([x, y]) => `${x} ${y}`).join(' L')} Z`;
+/*
+ * Label positions that differ from the automatic anchor (pole of
+ * inaccessibility). Regions too small for a label get one outside the
+ * shape plus a leader line; geography is never distorted to make room.
+ */
+const LABEL_OVERRIDES = {
+  DL: { x: 362, y: 316, leader: true },
+  GA: { x: 158, y: 826, leader: true },
+  SK: { x: 704, y: 334, leader: true },
+  TR: { x: 772, y: 548, leader: true },
+  MZ: { y: 508 },
+  HR: { x: 292, y: 300 },
+  KL: { x: 246, y: 1034, leader: true },
+};
+
+function boundsOf(path) {
+  const nums = path.match(/-?\d+(\.\d+)?/g).map(Number);
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < nums.length; i += 2) {
+    minX = Math.min(minX, nums[i]);
+    maxX = Math.max(maxX, nums[i]);
+    minY = Math.min(minY, nums[i + 1]);
+    maxY = Math.max(maxY, nums[i + 1]);
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+// Static per-region data, computed once.
+const REGIONS = INDIA_GEOMETRY.regions.map((r) => {
+  const [ax, ay] = r.anchor;
+  const o = LABEL_OVERRIDES[r.id] ?? {};
+  const b = boundsOf(r.path);
+  return {
+    ...r,
+    anchorX: ax,
+    anchorY: ay,
+    labelX: o.x ?? ax,
+    labelY: o.y ?? ay,
+    leader: Boolean(o.leader),
+    fontSize: Math.min(34, Math.max(24, Math.sqrt(r.area) * 0.19)),
+    // Radius that lets a circle centered on the anchor cover the whole shape.
+    revealRadius: Math.max(
+      Math.hypot(ax - b.minX, ay - b.minY),
+      Math.hypot(ax - b.maxX, ay - b.minY),
+      Math.hypot(ax - b.minX, ay - b.maxY),
+      Math.hypot(ax - b.maxX, ay - b.maxY),
+    ),
+  };
+});
+const REGION_BY_ID = Object.fromEntries(REGIONS.map((r) => [r.id, r]));
+
+/** Static drop-shadow silhouette. Memoized so the SVG filter never re-renders. */
+const Silhouette = memo(function Silhouette({ filterId }) {
+  return (
+    <g filter={`url(#${filterId})`} aria-hidden="true">
+      {REGIONS.map((r) => (
+        <path key={r.id} d={r.path} fill="#FFFFFF" />
+      ))}
+    </g>
+  );
+});
 
 export default function IndiaMapSVG({
   graph,
   coloring = {},
-  highlight = { active: null, neighbors: EMPTY, phase: 0 },
+  highlight = { active: null, neighbors: EMPTY, phase: 0, recent: null },
   selected = null,
   onSelect,
   conflicts = { vertices: EMPTY, edges: EMPTY },
   showEdges = false,
+  phaseMs = 600,
+  interactive = true,
 }) {
-  const [hover, setHover] = useState(null);
+  // Only the hovered region's id is state; the tooltip follows the pointer
+  // through a ref, so moving the mouse inside a region causes no re-render.
+  const [hoverId, setHoverId] = useState(null);
   const wrapRef = useRef(null);
+  const tipRef = useRef(null);
+  const tipPos = useRef({ x: 0, y: 0 });
+  const uid = useId().replace(/:/g, '');
+  const reduceMotion = useReducedMotion();
+  const t = phaseTiming(phaseMs);
 
+  // vertex name <-> region, joined through the state code.
+  const { vertexOf, regionOf } = useMemo(() => {
+    const vOf = {};
+    const rOf = {};
+    for (const v of graph.vertices) {
+      const region = REGION_BY_ID[graph.labels[v]];
+      if (region) {
+        vOf[region.id] = v;
+        rOf[v] = region;
+      }
+    }
+    return { vertexOf: vOf, regionOf: rOf };
+  }, [graph]);
+
+  const animating = Boolean(highlight.active);
   const focus = highlight.active ?? selected;
   const focusNeighbors = useMemo(() => {
-    if (highlight.active) return highlight.neighbors;
+    if (highlight.active) return highlight.phase >= 1 ? highlight.neighbors : EMPTY;
     if (selected) return new Set(graph.adjacency[selected] ?? []);
     return EMPTY;
   }, [highlight, selected, graph]);
+  const dimOthers = !animating && Boolean(selected);
 
-  // Only states that exist in the backend graph AND have geometry are drawn.
-  const states = graph.vertices.filter((v) => SHAPES[v]);
+  const select = (v) => interactive && onSelect?.(selected === v ? null : v);
 
-  // Paint emphasized states last so their thick outlines are not covered.
-  const drawOrder = useMemo(() => {
-    const weight = (v) =>
-      (conflicts.vertices.has(v) ? 4 : 0) + (v === focus ? 3 : 0) + (focusNeighbors.has(v) ? 1 : 0);
-    return [...states].sort((a, b) => weight(a) - weight(b));
-  }, [states, conflicts.vertices, focus, focusNeighbors]);
-
-  const updateHover = (state, event) => {
+  const showTip = (region, event) => {
     const rect = wrapRef.current.getBoundingClientRect();
-    setHover({ state, x: event.clientX - rect.left, y: event.clientY - rect.top });
+    tipPos.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    if (tipRef.current) {
+      tipRef.current.style.left = `${tipPos.current.x}px`;
+      tipRef.current.style.top = `${tipPos.current.y}px`;
+    }
+    if (hoverId !== region.id) setHoverId(region.id);
   };
+  const hideTip = () => setHoverId(null);
+
+  const active = highlight.active ? regionOf[highlight.active] : null;
+  const assigning = active && highlight.phase === 3 && coloring[highlight.active];
+  const recent = highlight.recent ? regionOf[highlight.recent] : null;
+
+  // Outline layer: drawn above every fill so thick borders are never covered.
+  const outlines = [];
+  for (const v of graph.vertices) {
+    const region = regionOf[v];
+    if (!region) continue;
+    if (conflicts.vertices.has(v)) outlines.push({ v, region, kind: 'conflict' });
+    else if (v === highlight.active) outlines.push({ v, region, kind: 'active' });
+    else if (v === selected && !animating) outlines.push({ v, region, kind: 'selected' });
+    else if (focusNeighbors.has(v)) outlines.push({ v, region, kind: 'neighbor' });
+    else if (region.id === hoverId) outlines.push({ v, region, kind: 'hover' });
+  }
+  const outlineOrder = { hover: 0, neighbor: 1, selected: 2, active: 3, conflict: 4 };
+  outlines.sort((a, b) => outlineOrder[a.kind] - outlineOrder[b.kind]);
+
+  // showEdges: true = every edge, 'conflicts' = only the conflicting ones.
+  const conflictEdgesOnly = showEdges === 'conflicts';
+
+  const hoverRegion = hoverId ? REGION_BY_ID[hoverId] : null;
+  const hoverVertex = hoverRegion ? vertexOf[hoverRegion.id] : null;
 
   return (
     <div className="map-wrap" ref={wrapRef}>
       <svg
         className="india-map"
-        viewBox={VIEWBOX}
-        role="img"
-        aria-label="Stylized map of Indian states"
+        viewBox={`0 0 ${MAP_W} ${MAP_H}`}
+        role="group"
+        aria-label={`Map of India with ${graph.vertices.length} colorable regions`}
       >
         <defs>
-          <filter id="land-shadow" x="-10%" y="-10%" width="120%" height="120%">
-            <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="#1E2A4A" floodOpacity="0.14" />
+          <filter id={`${uid}-shadow`} x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="0" dy="8" stdDeviation="10" floodColor="#1E2A4A" floodOpacity="0.16" />
           </filter>
-          <filter id="conflict-glow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="5" />
-          </filter>
-          <filter id="active-glow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="4" />
-          </filter>
+          {assigning && !reduceMotion && (
+            <clipPath id={`${uid}-reveal`}>
+              <path d={active.path} />
+            </clipPath>
+          )}
         </defs>
 
-        <rect x="40" y="25" width="510" height="635" fill="transparent" onClick={() => onSelect?.(null)} />
+        <rect width={MAP_W} height={MAP_H} fill="transparent" onClick={() => interactive && onSelect?.(null)} />
+        <Silhouette filterId={`${uid}-shadow`} />
 
-        <g filter="url(#land-shadow)">
-          {drawOrder.map((state) => {
-            const color = coloring[state];
-            const isActive = state === highlight.active;
-            const isSelected = state === selected;
-            const isNeighbor = focusNeighbors.has(state);
-            const isConflict = conflicts.vertices.has(state);
+        {/* Fills */}
+        <g className="map-fills">
+          {REGIONS.map((region) => {
+            const v = vertexOf[region.id];
+            if (!v) {
+              return (
+                <path
+                  key={region.id}
+                  className="map-context"
+                  d={region.path}
+                  fill={CONTEXT_FILL}
+                  stroke="#FFFFFF"
+                  strokeWidth={1}
+                  vectorEffect="non-scaling-stroke"
+                  onPointerMove={(e) => showTip(region, e)}
+                  onPointerLeave={hideTip}
+                />
+              );
+            }
+            const color = coloring[v];
+            const isActive = v === highlight.active;
+            const isNeighbor = focusNeighbors.has(v);
+            const isConflict = conflicts.vertices.has(v);
+            const related = v === focus || isNeighbor || isConflict;
             const fill = color
               ? colorFill(color)
-              : isNeighbor && highlight.active
-                ? NEIGHBOR_FILL
-                : isActive
-                  ? '#EEEAFE'
-                  : NEUTRAL_FILL;
-            const stroke = isConflict
-              ? CONFLICT_RED
               : isActive
-                ? ACTIVE_RING
-                : isSelected
-                  ? '#172033'
-                  : isNeighbor
-                    ? NEIGHBOR_RING
-                    : '#FFFFFF';
-            const d = toPath(SHAPES[state]);
+                ? ACTIVE_FILL
+                : isNeighbor && animating
+                  ? NEIGHBOR_FILL
+                  : NEUTRAL_FILL;
+            // While the new color spreads through the region, the base fill
+            // waits and switches only once the spreading circle covers it.
+            const fillDelay = isActive && assigning && !reduceMotion ? t.fill : 0;
 
             return (
-              <g
-                key={state}
-                className="map-state"
-                role="button"
-                tabIndex={0}
-                aria-label={`${state}${color ? `, color ${color}` : ', uncolored'}${isConflict ? ', in conflict' : ''}`}
-                aria-pressed={isSelected}
-                onClick={() => onSelect?.(isSelected ? null : state)}
+              <motion.path
+                key={region.id}
+                className={`map-state ${interactive ? 'interactive' : ''}`}
+                d={region.path}
+                stroke="#FFFFFF"
+                strokeWidth={1.1}
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+                initial={false}
+                animate={{ fill, opacity: dimOthers && !related ? 0.42 : 1 }}
+                transition={{
+                  fill: { duration: fillDelay ? 0.12 : t.ui, delay: fillDelay },
+                  opacity: { duration: 0.25 },
+                }}
+                role={interactive ? 'button' : undefined}
+                tabIndex={interactive ? 0 : undefined}
+                aria-label={`${v}, degree ${graph.adjacency[v].length}, ${color ? `color ${color}` : 'uncolored'}${isConflict ? ', in conflict' : ''}`}
+                aria-pressed={interactive ? v === selected : undefined}
+                onClick={() => select(v)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    onSelect?.(isSelected ? null : state);
+                    select(v);
                   }
                 }}
-                onPointerMove={(e) => updateHover(state, e)}
-                onPointerLeave={() => setHover((h) => (h?.state === state ? null : h))}
-              >
-                {(isConflict || isActive) && (
-                  <motion.path
-                    d={d}
-                    fill="none"
-                    stroke={isConflict ? CONFLICT_RED : ACTIVE_RING}
-                    strokeWidth={10}
-                    filter={`url(#${isConflict ? 'conflict' : 'active'}-glow)`}
-                    animate={{ opacity: [0.85, 0.25, 0.85] }}
-                    transition={{ duration: isConflict ? 1.1 : 1.4, repeat: Infinity }}
-                    pointerEvents="none"
-                  />
-                )}
-                <motion.path
-                  id={`state-${slug(state)}`}
-                  data-name={state}
-                  d={d}
+                onPointerMove={(e) => showTip(region, e)}
+                onPointerLeave={hideTip}
+              />
+            );
+          })}
+        </g>
+
+        {/* The new color spreads outward from the region's center. */}
+        {assigning && !reduceMotion && (
+          <motion.circle
+            key={`reveal-${highlight.active}`}
+            cx={active.anchorX}
+            cy={active.anchorY}
+            fill={colorFill(coloring[highlight.active])}
+            clipPath={`url(#${uid}-reveal)`}
+            initial={{ r: 0 }}
+            animate={{ r: active.revealRadius }}
+            transition={{ duration: t.fill, ease: [0.3, 0.7, 0.4, 1] }}
+            pointerEvents="none"
+          />
+        )}
+
+        {/* Soft halo in the assigned color that fades after assignment. */}
+        {recent && coloring[highlight.recent] && !reduceMotion && (
+          <motion.path
+            key={`glow-${highlight.recent}`}
+            d={recent.path}
+            fill="none"
+            stroke={colorFill(coloring[highlight.recent])}
+            strokeWidth={9}
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+            initial={{ opacity: 0.55 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: t.glow, delay: highlight.recent === highlight.active ? t.fill : 0 }}
+            pointerEvents="none"
+          />
+        )}
+
+        {/* Outlines for the current vertex, its neighbors, selection, and conflicts. */}
+        <g pointerEvents="none">
+          {outlines.map(({ v, region, kind }) => (
+            <g key={`${kind}-${v}`} className={`map-outline ${kind}`}>
+              {(kind === 'active' || kind === 'conflict') && (
+                <path
+                  className="outline-halo"
+                  d={region.path}
+                  fill="none"
+                  stroke={kind === 'conflict' ? CONFLICT_RED : ACTIVE_RING}
+                  strokeWidth={9}
                   strokeLinejoin="round"
-                  initial={false}
-                  animate={{
-                    fill,
-                    stroke,
-                    strokeWidth: isConflict || isActive ? 3.5 : isSelected ? 3 : isNeighbor ? 2.6 : 1.5,
-                  }}
-                  transition={{ duration: 0.55, ease: 'easeOut' }}
+                  vectorEffect="non-scaling-stroke"
                 />
-                {isActive && highlight.phase === 3 && (
-                  // Brief white flash when the color is assigned.
-                  <motion.path
-                    key={`flash-${color}`}
-                    d={d}
-                    fill="#FFFFFF"
-                    initial={{ opacity: 0.75 }}
-                    animate={{ opacity: 0 }}
-                    transition={{ duration: 0.6 }}
-                    pointerEvents="none"
-                  />
+              )}
+              <path
+                d={region.path}
+                fill="none"
+                stroke={
+                  kind === 'conflict'
+                    ? CONFLICT_RED
+                    : kind === 'active'
+                      ? ACTIVE_RING
+                      : kind === 'neighbor'
+                        ? NEIGHBOR_RING
+                        : kind === 'hover'
+                          ? '#8391AD'
+                          : SELECT_RING
+                }
+                strokeWidth={kind === 'hover' ? 1.6 : kind === 'neighbor' ? 2.2 : 2.8}
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
+          ))}
+        </g>
+
+        {/* Optional overlay: the graph's edges drawn between region centers. */}
+        {showEdges && (
+          <g className="map-edges" pointerEvents="none">
+            {graph.edges.map(([u, v]) => {
+              const a = regionOf[u];
+              const b = regionOf[v];
+              if (!a || !b) return null;
+              const isConflict = conflicts.edges.has(edgeKey(u, v));
+              if (conflictEdgesOnly && !isConflict) return null;
+              const checking =
+                highlight.phase >= 1 &&
+                highlight.phase <= 2 &&
+                (u === highlight.active || v === highlight.active);
+              return (
+                <line
+                  key={edgeKey(u, v)}
+                  className={checking ? 'edge-flow' : undefined}
+                  x1={a.anchorX}
+                  y1={a.anchorY}
+                  x2={b.anchorX}
+                  y2={b.anchorY}
+                  stroke={isConflict ? CONFLICT_RED : checking ? NEIGHBOR_RING : '#172033'}
+                  strokeOpacity={isConflict || checking ? 0.95 : 0.35}
+                  strokeWidth={isConflict || checking ? 2.6 : 1.3}
+                  strokeDasharray={isConflict ? '6 4' : checking ? '5 5' : '3 3'}
+                  vectorEffect="non-scaling-stroke"
+                />
+              );
+            })}
+            {graph.vertices.map((v) =>
+              regionOf[v] && (!conflictEdgesOnly || conflicts.vertices.has(v)) ? (
+                <circle key={v} cx={regionOf[v].anchorX} cy={regionOf[v].anchorY} r={4} fill="#172033" opacity={0.55} />
+              ) : null,
+            )}
+          </g>
+        )}
+
+        {/* Labels (state codes). Small regions get a leader line. */}
+        <g className="map-labels" pointerEvents="none" aria-hidden="true">
+          {graph.vertices.map((v) => {
+            const region = regionOf[v];
+            if (!region) return null;
+            const color = coloring[v];
+            const ink = region.leader ? '#172033' : color ? colorInk(color) : '#172033';
+            const dimmed = dimOthers && v !== focus && !focusNeighbors.has(v) && !conflicts.vertices.has(v);
+            return (
+              <g key={v} opacity={dimmed ? 0.45 : 1} className="map-label-group">
+                {region.leader && (
+                  <>
+                    <line
+                      x1={region.anchorX}
+                      y1={region.anchorY}
+                      x2={region.labelX}
+                      y2={region.labelY}
+                      stroke="#5B6781"
+                      strokeWidth={1}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <circle cx={region.anchorX} cy={region.anchorY} r={3.2} fill="#5B6781" />
+                  </>
                 )}
+                <text
+                  x={region.labelX}
+                  y={region.labelY}
+                  textAnchor="middle"
+                  dy="0.35em"
+                  fontSize={region.fontSize}
+                  className={`map-label ${ink === '#FFFFFF' ? 'on-dark' : ''} ${region.leader ? 'leader' : ''}`}
+                  fill={ink}
+                >
+                  {region.id}
+                </text>
               </g>
             );
           })}
         </g>
-
-        {/* Optional overlay: the graph edges drawn between state centers. */}
-        {showEdges && (
-          <g className="map-edges" pointerEvents="none">
-            {graph.edges.map(([u, v]) => {
-              if (!LABEL_AT[u] || !LABEL_AT[v]) return null;
-              const isConflict = conflicts.edges.has(edgeKey(u, v));
-              return (
-                <line
-                  key={edgeKey(u, v)}
-                  x1={LABEL_AT[u][0]}
-                  y1={LABEL_AT[u][1]}
-                  x2={LABEL_AT[v][0]}
-                  y2={LABEL_AT[v][1]}
-                  stroke={isConflict ? CONFLICT_RED : '#172033'}
-                  strokeOpacity={isConflict ? 0.95 : 0.4}
-                  strokeWidth={isConflict ? 3 : 1.4}
-                  strokeDasharray={isConflict ? '6 4' : '3 3'}
-                />
-              );
-            })}
-          </g>
-        )}
-
-        {/* Labels */}
-        <g pointerEvents="none">
-          {states.map((state) => {
-            const [x, y] = LABEL_AT[state];
-            const colored = Boolean(coloring[state]);
-            return (
-              <text
-                key={state}
-                x={x}
-                y={y}
-                textAnchor="middle"
-                dy="0.35em"
-                className={`map-label ${colored ? 'on-color' : ''}`}
-                fontSize={state === 'Goa' ? 9 : 12}
-              >
-                {graph.labels[state]}
-              </text>
-            );
-          })}
-        </g>
-
-        <text x="545" y="652" textAnchor="end" className="map-note">
-          Stylized · not to scale
-        </text>
       </svg>
 
       <AnimatePresence>
-        {hover && (
+        {hoverRegion && (
           <motion.div
+            ref={tipRef}
             className="map-tooltip"
-            style={{ left: hover.x, top: hover.y }}
+            style={{ left: tipPos.current.x, top: tipPos.current.y }}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+            exit={{ opacity: 0, y: 2 }}
+            transition={{ duration: 0.14 }}
+            role="tooltip"
           >
-            <strong>{hover.state}</strong>
-            <span>
-              Degree {graph.adjacency[hover.state]?.length ?? 0}
-              {coloring[hover.state] ? ` · Color ${coloring[hover.state]}` : ' · uncolored'}
-            </span>
+            <strong>{hoverVertex ?? hoverRegion.name}</strong>
+            {hoverVertex ? (
+              <>
+                <span>Degree: {graph.adjacency[hoverVertex]?.length ?? 0}</span>
+                <span>
+                  Color:{' '}
+                  {coloring[hoverVertex] ? (
+                    <>
+                      <i className="tip-swatch" style={{ background: colorFill(coloring[hoverVertex]) }} />
+                      {coloring[hoverVertex]}
+                    </>
+                  ) : (
+                    'not assigned'
+                  )}
+                </span>
+              </>
+            ) : (
+              <span>Union territory · not a graph vertex</span>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
-}
-
-/** Names of backend vertices that have no drawable shape (should be empty). */
-export function missingShapes(graph) {
-  return graph.vertices.filter((v) => !SHAPES[v]);
 }

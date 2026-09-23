@@ -28,10 +28,10 @@ export default function VertexCard({ graph, vertex, coloring, onClose, onSelect 
           <div className="vertex-meta">
             <span className="degree-badge">Degree {graph.adjacency[vertex].length}</span>
             <span className="muted small">
-              {coloring[vertex] ? `Color ${coloring[vertex]}` : 'Not colored yet'}
+              Assigned color: {coloring[vertex] ? <strong>{coloring[vertex]}</strong> : 'none yet'}
             </span>
           </div>
-          <div className="step-section-title">Neighbors</div>
+          <div className="step-section-title">Neighbors ({graph.adjacency[vertex].length})</div>
           <ul className="vertex-neighbors">
             {graph.adjacency[vertex].map((n) => (
               <li key={n}>

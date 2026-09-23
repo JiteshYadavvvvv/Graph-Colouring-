@@ -1,69 +1,102 @@
 """
-Simplified map of 20 Indian states, modeled as a graph.
+Map of India's 28 states and 3 mainland union territories (Jammu and Kashmir,
+Ladakh, Delhi), modeled as a graph.
 
     Region          -> Vertex
     Shared border   -> Edge
 
-This adjacency list is the SINGLE source of truth for which states touch.
+This adjacency list is the SINGLE source of truth for which regions touch.
 The frontend never stores its own copy: it fetches this graph through
 GET /api/graph/india and only draws it.
 
-The border relationships follow real Indian state borders, restricted to the
-states included here (Delhi, Jammu & Kashmir and the North-East are left out
-to keep the demonstration readable).
+Where the edges come from
+-------------------------
+Every edge below was checked against real boundary geometry with
+tools/build_india_map.py, which measures the length of each shared land
+border. Two regions are adjacent when they share a border of at least ~13 km.
+That rule leaves out the Himachal Pradesh – Uttar Pradesh contact, which is
+only a few kilometres long (a near tripoint), and point contacts such as
+Uttarakhand – Haryana.
+
+The small union territories Chandigarh, Puducherry, Dadra & Nagar Haveli and
+Daman & Diu, Lakshadweep, and the Andaman & Nicobar Islands are drawn on the
+map for geographic completeness but are not vertices: they are enclaves or
+islands and add nothing to the coloring problem.
 """
 
 KEY = "india"
 NAME = "Indian States"
 KIND = "map"
 DESCRIPTION = (
-    "20 Indian states. Two states are connected when they share a land border."
+    "28 states plus Jammu and Kashmir, Ladakh and Delhi. "
+    "Two regions are connected when they share a land border."
 )
 
+# Listed roughly north to south, then the North-East. With the "natural"
+# strategy, greedy coloring visits the vertices in exactly this order.
 ADJACENCY = {
-    "Punjab":           ["Himachal Pradesh", "Haryana", "Rajasthan"],
-    "Himachal Pradesh": ["Punjab", "Haryana", "Uttarakhand", "Uttar Pradesh"],
-    "Uttarakhand":      ["Himachal Pradesh", "Uttar Pradesh"],
-    "Haryana":          ["Punjab", "Himachal Pradesh", "Rajasthan", "Uttar Pradesh"],
-    "Rajasthan":        ["Punjab", "Haryana", "Uttar Pradesh", "Madhya Pradesh", "Gujarat"],
-    "Uttar Pradesh":    ["Himachal Pradesh", "Uttarakhand", "Haryana", "Rajasthan",
-                         "Madhya Pradesh", "Chhattisgarh", "Jharkhand", "Bihar"],
-    "Bihar":            ["Uttar Pradesh", "Jharkhand", "West Bengal"],
-    "West Bengal":      ["Bihar", "Jharkhand", "Odisha"],
-    "Jharkhand":        ["Uttar Pradesh", "Bihar", "West Bengal", "Odisha", "Chhattisgarh"],
-    "Odisha":           ["West Bengal", "Jharkhand", "Chhattisgarh", "Andhra Pradesh"],
-    "Chhattisgarh":     ["Uttar Pradesh", "Jharkhand", "Odisha", "Madhya Pradesh",
-                         "Maharashtra", "Telangana", "Andhra Pradesh"],
-    "Madhya Pradesh":   ["Rajasthan", "Uttar Pradesh", "Chhattisgarh", "Maharashtra", "Gujarat"],
-    "Gujarat":          ["Rajasthan", "Madhya Pradesh", "Maharashtra"],
-    "Maharashtra":      ["Gujarat", "Madhya Pradesh", "Chhattisgarh", "Telangana",
-                         "Karnataka", "Goa"],
-    "Goa":              ["Maharashtra", "Karnataka"],
-    "Telangana":        ["Maharashtra", "Chhattisgarh", "Andhra Pradesh", "Karnataka"],
-    "Andhra Pradesh":   ["Telangana", "Chhattisgarh", "Odisha", "Karnataka", "Tamil Nadu"],
-    "Karnataka":        ["Goa", "Maharashtra", "Telangana", "Andhra Pradesh",
-                         "Tamil Nadu", "Kerala"],
-    "Kerala":           ["Karnataka", "Tamil Nadu"],
-    "Tamil Nadu":       ["Karnataka", "Andhra Pradesh", "Kerala"],
+    "Jammu and Kashmir": ["Ladakh", "Himachal Pradesh", "Punjab"],
+    "Ladakh":            ["Jammu and Kashmir", "Himachal Pradesh"],
+    "Himachal Pradesh":  ["Jammu and Kashmir", "Ladakh", "Punjab", "Haryana", "Uttarakhand"],
+    "Punjab":            ["Jammu and Kashmir", "Himachal Pradesh", "Haryana", "Rajasthan"],
+    "Uttarakhand":       ["Himachal Pradesh", "Uttar Pradesh"],
+    "Haryana":           ["Punjab", "Himachal Pradesh", "Delhi", "Rajasthan", "Uttar Pradesh"],
+    "Delhi":             ["Haryana", "Uttar Pradesh"],
+    "Rajasthan":         ["Punjab", "Haryana", "Uttar Pradesh", "Madhya Pradesh", "Gujarat"],
+    "Uttar Pradesh":     ["Uttarakhand", "Haryana", "Delhi", "Rajasthan", "Madhya Pradesh",
+                          "Chhattisgarh", "Jharkhand", "Bihar"],
+    "Gujarat":           ["Rajasthan", "Madhya Pradesh", "Maharashtra"],
+    "Madhya Pradesh":    ["Rajasthan", "Uttar Pradesh", "Chhattisgarh", "Maharashtra", "Gujarat"],
+    "Bihar":             ["Uttar Pradesh", "Jharkhand", "West Bengal"],
+    "Jharkhand":         ["Uttar Pradesh", "Bihar", "West Bengal", "Odisha", "Chhattisgarh"],
+    "West Bengal":       ["Bihar", "Jharkhand", "Odisha", "Sikkim", "Assam"],
+    "Sikkim":            ["West Bengal"],
+    "Odisha":            ["West Bengal", "Jharkhand", "Chhattisgarh", "Andhra Pradesh"],
+    "Chhattisgarh":      ["Uttar Pradesh", "Jharkhand", "Odisha", "Andhra Pradesh", "Telangana",
+                          "Maharashtra", "Madhya Pradesh"],
+    "Maharashtra":       ["Gujarat", "Madhya Pradesh", "Chhattisgarh", "Telangana", "Karnataka", "Goa"],
+    "Goa":               ["Maharashtra", "Karnataka"],
+    "Telangana":         ["Maharashtra", "Chhattisgarh", "Andhra Pradesh", "Karnataka"],
+    "Andhra Pradesh":    ["Telangana", "Chhattisgarh", "Odisha", "Karnataka", "Tamil Nadu"],
+    "Karnataka":         ["Goa", "Maharashtra", "Telangana", "Andhra Pradesh", "Tamil Nadu", "Kerala"],
+    "Tamil Nadu":        ["Karnataka", "Andhra Pradesh", "Kerala"],
+    "Kerala":            ["Karnataka", "Tamil Nadu"],
+    "Assam":             ["West Bengal", "Arunachal Pradesh", "Nagaland", "Manipur", "Mizoram",
+                          "Tripura", "Meghalaya"],
+    "Arunachal Pradesh": ["Assam", "Nagaland"],
+    "Nagaland":          ["Assam", "Arunachal Pradesh", "Manipur"],
+    "Manipur":           ["Nagaland", "Assam", "Mizoram"],
+    "Mizoram":           ["Manipur", "Assam", "Tripura"],
+    "Tripura":           ["Assam", "Mizoram"],
+    "Meghalaya":         ["Assam"],
 }
 
-# Short labels used on the map and graph nodes.
+# Short labels (standard state codes) used on the map and on graph nodes.
+# The map geometry in the frontend is keyed by these same codes.
 LABELS = {
-    "Punjab": "PB", "Himachal Pradesh": "HP", "Uttarakhand": "UK", "Haryana": "HR",
-    "Rajasthan": "RJ", "Uttar Pradesh": "UP", "Bihar": "BR", "West Bengal": "WB",
-    "Jharkhand": "JH", "Odisha": "OD", "Chhattisgarh": "CG", "Madhya Pradesh": "MP",
-    "Gujarat": "GJ", "Maharashtra": "MH", "Goa": "GA", "Telangana": "TG",
-    "Andhra Pradesh": "AP", "Karnataka": "KA", "Kerala": "KL", "Tamil Nadu": "TN",
+    "Jammu and Kashmir": "JK", "Ladakh": "LA", "Himachal Pradesh": "HP", "Punjab": "PB",
+    "Uttarakhand": "UK", "Haryana": "HR", "Delhi": "DL", "Rajasthan": "RJ",
+    "Uttar Pradesh": "UP", "Gujarat": "GJ", "Madhya Pradesh": "MP", "Bihar": "BR",
+    "Jharkhand": "JH", "West Bengal": "WB", "Sikkim": "SK", "Odisha": "OD",
+    "Chhattisgarh": "CG", "Maharashtra": "MH", "Goa": "GA", "Telangana": "TG",
+    "Andhra Pradesh": "AP", "Karnataka": "KA", "Tamil Nadu": "TN", "Kerala": "KL",
+    "Assam": "AS", "Arunachal Pradesh": "AR", "Nagaland": "NL", "Manipur": "MN",
+    "Mizoram": "MZ", "Tripura": "TR", "Meghalaya": "ML",
 }
 
-# Default node positions for the node-link graph view (roughly geographic,
-# so the graph visibly mirrors the map). Users can drag nodes freely.
+# Default node positions for the node-link graph view. They are the map's
+# label anchors, scaled down and nudged apart so nodes don't overlap (the
+# North-East and the Delhi region are crowded). Users can drag nodes freely.
 LAYOUT = {
-    "Punjab": (165, 115), "Himachal Pradesh": (243, 78), "Uttarakhand": (312, 112),
-    "Haryana": (228, 165), "Rajasthan": (160, 225), "Uttar Pradesh": (335, 215),
-    "Bihar": (448, 232), "West Bengal": (505, 262), "Jharkhand": (425, 293),
-    "Odisha": (430, 365), "Chhattisgarh": (357, 350), "Madhya Pradesh": (268, 312),
-    "Gujarat": (135, 322), "Maharashtra": (252, 395), "Goa": (200, 470),
-    "Telangana": (325, 432), "Andhra Pradesh": (385, 470), "Karnataka": (275, 488),
-    "Kerala": (240, 580), "Tamil Nadu": (315, 585),
+    "Jammu and Kashmir": (157, 91), "Ladakh": (213, 78), "Himachal Pradesh": (210, 132),
+    "Punjab": (170, 155), "Uttarakhand": (248, 174), "Haryana": (172, 200),
+    "Delhi": (216, 210), "Rajasthan": (136, 247), "Uttar Pradesh": (274, 250),
+    "Gujarat": (92, 323), "Madhya Pradesh": (254, 335), "Bihar": (385, 273),
+    "Jharkhand": (363, 322), "West Bengal": (421, 330), "Sikkim": (429, 230),
+    "Odisha": (359, 385), "Chhattisgarh": (312, 357), "Maharashtra": (159, 418),
+    "Goa": (124, 509), "Telangana": (238, 454), "Andhra Pradesh": (233, 523),
+    "Karnataka": (169, 501), "Tamil Nadu": (221, 612), "Kerala": (183, 638),
+    "Assam": (518, 249), "Arunachal Pradesh": (554, 197), "Nagaland": (563, 243),
+    "Manipur": (546, 285), "Mizoram": (532, 328), "Tripura": (491, 308),
+    "Meghalaya": (471, 267),
 }

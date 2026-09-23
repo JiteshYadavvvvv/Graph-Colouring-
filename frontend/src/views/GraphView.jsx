@@ -8,6 +8,7 @@ import StepPanel from '../components/StepPanel';
 import VertexCard from '../components/VertexCard';
 import { usedColors } from '../utils/helpers';
 import GraphSVG from '../visualization/GraphSVG';
+import { legendPulse } from './MapView';
 
 export default function GraphView({ cs }) {
   const { graph, coloring, verification } = cs;
@@ -54,9 +55,9 @@ export default function GraphView({ cs }) {
               selected={cs.selected}
               onSelect={cs.setSelected}
               conflicts={cs.conflicts}
+              phaseMs={cs.phaseMs}
             />
           </div>
-          <AlgorithmTimeline coloringState={cs} labels={graph.labels} />
         </div>
         <aside className="viz-side">
           {showVertexCard ? (
@@ -70,7 +71,8 @@ export default function GraphView({ cs }) {
           ) : (
             <StepPanel coloringState={cs} />
           )}
-          <Legend coloring={coloring} />
+          <Legend coloring={coloring} pulse={legendPulse(cs)} />
+          <AlgorithmTimeline coloringState={cs} />
         </aside>
       </div>
 

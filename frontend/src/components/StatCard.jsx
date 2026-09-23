@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import CountUp from './CountUp';
 
 export default function StatCard({ icon: Icon, label, value, hint, tone = 'primary', delay = 0 }) {
   return (
@@ -7,7 +8,7 @@ export default function StatCard({ icon: Icon, label, value, hint, tone = 'prima
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35 }}
-      whileHover={{ y: -3 }}
+      whileHover={{ y: -2 }}
     >
       {Icon && (
         <div className="stat-icon" aria-hidden="true">
@@ -22,7 +23,7 @@ export default function StatCard({ icon: Icon, label, value, hint, tone = 'prima
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          {value}
+          {typeof value === 'number' ? <CountUp value={value} decimals={Number.isInteger(value) ? 0 : 2} /> : value}
         </motion.div>
         {hint && <div className="stat-hint">{hint}</div>}
       </div>

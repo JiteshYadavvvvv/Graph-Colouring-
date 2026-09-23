@@ -86,6 +86,22 @@ class GreedyColoringTests(unittest.TestCase):
         result = greedy_coloring_with_steps(DATASETS["mini"]["adjacency"])
         self.assertEqual(result["coloring"], {"A": 1, "B": 2, "C": 2, "D": 1, "E": 3})
 
+    def test_every_vertex_has_label_and_layout(self):
+        for key, dataset in DATASETS.items():
+            vertices = set(dataset["adjacency"])
+            self.assertEqual(set(dataset["labels"]), vertices, key)
+            self.assertEqual(set(dataset["layout"]), vertices, key)
+            # Labels double as stable IDs for the map geometry, so they must be unique.
+            self.assertEqual(len(set(dataset["labels"].values())), len(vertices), key)
+
+    def test_india_known_borders(self):
+        graph = DATASETS["india"]["adjacency"]
+        self.assertEqual(len(graph), 31)
+        self.assertIn("Goa", graph["Maharashtra"])
+        self.assertIn("Sikkim", graph["West Bengal"])
+        self.assertEqual(graph["Meghalaya"], ["Assam"])
+        self.assertNotIn("Kerala", graph["Andhra Pradesh"])
+
     def test_india_uses_at_most_four_colors(self):
         # India is a planar map, so four colors always suffice (Four Color Theorem).
         result = greedy_coloring_with_steps(DATASETS["india"]["adjacency"])

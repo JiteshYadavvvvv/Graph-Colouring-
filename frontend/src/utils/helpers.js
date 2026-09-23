@@ -8,6 +8,12 @@ export function colorFill(k) {
   return `hsl(${hue.toFixed(0)} 62% 52%)`;
 }
 
+/** Label color that is readable on top of color k. */
+export function colorInk(k) {
+  if (!k) return '#172033';
+  return k <= PALETTE.length ? PALETTE[k - 1].ink : '#FFFFFF';
+}
+
 export function colorName(k) {
   if (!k) return 'Uncolored';
   return k <= PALETTE.length ? PALETTE[k - 1].name : `Hue ${k}`;
@@ -40,10 +46,6 @@ export function usedColors(coloring) {
 
 export function pad2(n) {
   return String(n).padStart(2, '0');
-}
-
-export function slug(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
 /** Bounding box of layout points, padded, as an SVG viewBox. */

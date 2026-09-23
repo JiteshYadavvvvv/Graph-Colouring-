@@ -23,6 +23,33 @@
   }
 }
 
+@keyframes halo-breathe {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.1;
+  }
+}
+
+/* A controlled pulse: three beats, then a steady red halo. */
+@keyframes halo-conflict {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.08;
+  }
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
 .spin {
   animation: spin 0.9s linear infinite;
 }

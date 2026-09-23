@@ -37,9 +37,9 @@ Color   → Label assigned to a vertex (1, 2, 3, …)
 
 This project:
 
-* stores a simplified map of **20 Indian states** (42 shared borders) as an adjacency list on the backend,
+* stores **31 Indian regions** (28 states plus Jammu and Kashmir, Ladakh and Delhi; 59 shared land borders) as an adjacency list on the backend,
 * runs a hand-written **greedy coloring** algorithm that records every step,
-* animates those steps on a stylized SVG map and on a draggable node-link graph,
+* animates those steps on a **geographically accurate SVG map of India** (real state boundaries, stored locally) and on a draggable node-link graph, side by side if you like,
 * checks the result with a separate **conflict detector** endpoint,
 * includes a clearly labeled **debug feature** that injects a conflict, so you can show that the detector actually works.
 
@@ -51,11 +51,11 @@ A second, abstract dataset (a 6-vertex wheel graph) shows that the same algorith
 |---|---|
 | **Home dashboard** | Hero section, the three-step idea (Model → Color → Verify), dataset picker |
 | **Graph view** | Draggable SVG node-link graph, click-to-inspect vertex card (degree + neighbors), neighbor/edge highlighting, adjacency list as a tree or a table with a filter |
-| **Map view** | Stylized SVG map of India with hover tooltips, click selection, and an optional overlay of the graph edges on the map |
-| **Algorithm replay** | Each backend step is replayed in 4 phases: *select vertex → check neighbors → find smallest color → assign*. Includes a step counter, progress bar, pseudocode with the current line highlighted, and a visiting-order timeline |
-| **Controls** | Run, Pause/Resume, Step (one phase at a time), Finish (skip to the end), Reset, 5-level speed slider, vertex-order choice (natural or largest-degree-first / Welsh–Powell) |
-| **Results** | Summary cards (regions, colors used, conflicts, verdict), a table sortable by order/region/degree/color, color classes (independent sets), final map preview |
-| **Conflict detection** | `POST /api/conflicts` checks every edge; conflicting regions pulse red on the map/graph; the raw JSON response is shown |
+| **Map view** | Real India state/UT boundaries (local SVG, no map service) with hover tooltips (name, degree, color), click/keyboard selection, leader-line labels for small states, an optional overlay of the graph edges, and a **Map / Graph / Split** switch that shows the map and graph in sync |
+| **Algorithm replay** | Each backend step is replayed in 4 phases: *select vertex → check neighbors → find smallest color → assign*. Only the edges being checked animate; the chosen color spreads through the region and a soft halo fades out. Includes a step counter, progress bar, pseudocode with the current line highlighted, and a vertical algorithm timeline |
+| **Controls** | Run, Pause/Resume (continues from the same phase), Step (one phase at a time), Finish (skip to the end), Reset, speed (Slow / Normal / Fast / Instant = 1800 / 1100 / 500 / 100 ms per phase), vertex-order choice (natural or largest-degree-first / Welsh–Powell) |
+| **Results** | Completion summary with animated counters (regions, colors used, conflicts) and the verdict from the backend verifier, a table sortable by order/region/degree/color, color classes (independent sets), final map preview |
+| **Conflict detection** | `POST /api/conflicts` checks every edge; conflicting regions get a red outline and a short, controlled pulse on the map and the graph, and the conflicting edge turns red; the raw JSON response is shown |
 | **Simulate conflict** | *DEMO / DEBUG FEATURE*: copies a neighbor's color onto one vertex **in the browser only**, then asks the backend to detect the conflict |
 | **How It Works** | Vertex/Edge/Color concept cards, plus a 5-vertex tutorial graph animated from real backend steps, with Back/Next/Play controls |
 | **Statistics** | V, E, colors, conflicts, max/avg degree, the complexity explanation, measured operation counts, a degree bar chart, and a comparison of natural vs. largest-first ordering |
@@ -91,7 +91,9 @@ React replays the steps one phase at a time → map, graph, and timeline update
 Animation ends   → POST /api/conflicts → verdict banner
 ```
 
-**Single source of truth:** adjacency lists exist only in `backend/data/`. The frontend never stores its own copy. `IndiaMapSVG.jsx` contains only drawing geometry (polygon coordinates), keyed by state name. During development, a script confirmed that two polygons share a border segment exactly when the backend lists them as neighbors.
+**Single source of truth:** adjacency lists exist only in `backend/data/`. The frontend never stores its own copy. `frontend/src/data/indiaGeometry.js` contains only drawing geometry (SVG paths), keyed by state code (`MH`, `GJ`, …), which is joined to the backend graph through `graph.labels`.
+
+**Map geometry.** The boundaries come from GIS data ([udit-001/india-maps-data](https://github.com/udit-001/india-maps-data), district GeoJSON), processed once at development time by `tools/build_india_map.py`: districts are dissolved into states, projected with a Lambert Conformal Conic projection, simplified together (so neighbors keep an identical shared border), and written to `indiaGeometry.js`. The same script measures every shared land border, and the backend adjacency list was checked against it. The app never downloads map data at runtime.
 
 **The frontend never computes colors.** `utils/helpers.js → coloringAtCursor()` rebuilds the visible coloring from `steps[i].assigned_color` values returned by the backend.
 
@@ -111,7 +113,7 @@ The graph is undirected: if `B` is in `graph[A]`, then `A` is in `graph[B]`. `va
 
 | Dataset | V | E | Max degree Δ | Colors (greedy) |
 |---|---|---|---|---|
-| Indian States | 20 | 42 | 8 (Uttar Pradesh) | 4 |
+| Indian States | 31 | 59 | 8 (Uttar Pradesh) | 4 |
 | Sample Graph (wheel W₅) | 6 | 10 | 5 (C) | 4 (optimal) |
 | Mini tutorial graph | 5 | 6 | 3 | 3 |
 
@@ -186,7 +188,7 @@ Let **V** = number of vertices, **E** = number of edges, and **C** = number of c
 | Conflict detection | O(V + E) | each edge checked once |
 | **Space** | **O(V + E)** | adjacency list V + 2E entries; coloring O(V); steps O(V + E) |
 
-Because C ≤ Δ + 1, the V·C term is at most V(Δ + 1). The Statistics page shows measured counts. For India, it reports 84 neighbor checks (= 2E) and 42 candidate-color tests.
+Because C ≤ Δ + 1, the V·C term is at most V(Δ + 1). The Statistics page shows measured counts. For India, it reports 118 neighbor checks (= 2E) and 62 candidate-color tests.
 
 ## API Documentation
 
@@ -200,7 +202,7 @@ Base URL: `http://127.0.0.1:8000`. Interactive docs: `http://127.0.0.1:8000/docs
 ### `GET /api/datasets`
 Lists the selectable datasets.
 ```json
-[{ "key": "india", "name": "Indian States", "kind": "map", "description": "...", "vertices": 20, "edges": 42 },
+[{ "key": "india", "name": "Indian States", "kind": "map", "description": "...", "vertices": 31, "edges": 59 },
  { "key": "sample", "name": "Sample Graph", "kind": "graph", "description": "...", "vertices": 6, "edges": 10 }]
 ```
 
@@ -209,13 +211,13 @@ Lists the selectable datasets.
 ```json
 {
   "key": "india", "name": "Indian States", "kind": "map", "description": "...",
-  "vertices": ["Punjab", "..."],
-  "edges": [["Punjab", "Himachal Pradesh"], "..."],
-  "adjacency": { "Punjab": ["Himachal Pradesh", "Haryana", "Rajasthan"], "...": [] },
-  "layout": { "Punjab": { "x": 165, "y": 115 } },
+  "vertices": ["Jammu and Kashmir", "..."],
+  "edges": [["Jammu and Kashmir", "Ladakh"], "..."],
+  "adjacency": { "Punjab": ["Jammu and Kashmir", "Himachal Pradesh", "Haryana", "Rajasthan"], "...": [] },
+  "layout": { "Punjab": { "x": 170, "y": 155 } },
   "labels": { "Punjab": "PB" },
-  "statistics": { "vertices": 20, "edges": 42, "max_degree": 8, "min_degree": 2,
-                  "average_degree": 4.2, "density": 0.221, "greedy_upper_bound": 9, "degrees": {} }
+  "statistics": { "vertices": 31, "edges": 59, "max_degree": 8, "min_degree": 1,
+                  "average_degree": 3.81, "density": 0.127, "greedy_upper_bound": 9, "degrees": {} }
 }
 ```
 
@@ -230,13 +232,13 @@ Response (abridged):
 ```json
 {
   "dataset": "india", "strategy": "natural", "strategy_label": "Natural order (vertices in dataset order)",
-  "coloring": { "Punjab": 1, "Himachal Pradesh": 2, "...": 0 },
+  "coloring": { "Jammu and Kashmir": 1, "Ladakh": 2, "...": 0 },
   "colors_used": 4,
-  "order": ["Punjab", "Himachal Pradesh", "..."],
+  "order": ["Jammu and Kashmir", "Ladakh", "..."],
   "steps": [{
-    "step": 14, "vertex": "Maharashtra", "degree": 6,
+    "step": 18, "vertex": "Maharashtra", "degree": 6,
     "neighbors": ["Gujarat", "Madhya Pradesh", "Chhattisgarh", "Telangana", "Karnataka", "Goa"],
-    "neighbor_colors": { "Gujarat": 3, "Madhya Pradesh": 1, "Chhattisgarh": 2 },
+    "neighbor_colors": { "Gujarat": 1, "Madhya Pradesh": 2, "Chhattisgarh": 3 },
     "uncolored_neighbors": ["Telangana", "Karnataka", "Goa"],
     "used_colors": [1, 2, 3], "rejected_colors": [1, 2, 3], "available_colors": [4, 5],
     "assigned_color": 4, "is_new_color": false, "colors_in_use": 4,
@@ -244,7 +246,7 @@ Response (abridged):
   }],
   "valid": true, "conflicts": [],
   "statistics": { "colors_used": 4, "conflicts": 0, "time_complexity": "O(V + E + V·C)",
-                  "space_complexity": "O(V + E)", "neighbor_checks": 84, "color_checks": 42,
+                  "space_complexity": "O(V + E)", "neighbor_checks": 118, "color_checks": 62,
                   "execution_ms": 0.11, "...": "graph statistics as above" }
 }
 ```
@@ -261,10 +263,10 @@ Response:
   "conflicts": [{ "region_a": "Punjab", "region_b": "Haryana", "color": 1 }],
   "conflicting_vertices": ["Haryana", "Punjab"],
   "uncolored": ["Himachal Pradesh", "..."],
-  "checked_edges": 42
+  "checked_edges": 59
 }
 ```
-A custom `graph` that is not undirected, or a coloring that names unknown vertices, returns **422** with an explanation.
+A custom `graph` that is not undirected, or a coloring that names unknown vertices, returns **422** with an explanation. Any unexpected server error returns **500** with a short JSON `detail` and never a stack trace.
 
 ## Installation
 
@@ -311,7 +313,7 @@ Optional settings:
 cd backend
 python -m unittest discover -s tests -v
 ```
-There are 13 tests: empty graph, single vertex, two connected vertices, triangle, complete graphs K₁–K₇ (n colors), every dataset with both orderings (valid, and ≤ Δ + 1 colors), traced steps matching the plain algorithm, the exact tutorial walkthrough, India ≤ 4 colors, conflict detection, each edge reported once, uncolored vertex marked invalid, and a directed edge rejected.
+There are 15 tests: empty graph, single vertex, two connected vertices, triangle, complete graphs K₁–K₇ (n colors), every dataset with both orderings (valid, and ≤ Δ + 1 colors), every vertex having a unique label and a layout position, traced steps matching the plain algorithm, the exact tutorial walkthrough, known India borders, India ≤ 4 colors, conflict detection, each edge reported once, uncolored vertex marked invalid, and a directed edge rejected.
 
 ### API smoke test (backend running)
 ```bash
@@ -334,10 +336,11 @@ interactive-map-coloring/
 │   ├── algorithms/coloring.py  greedy_coloring, greedy_coloring_with_steps, is_valid_coloring,
 │   │                           find_conflicts, vertex_order (natural / Welsh–Powell), graph_statistics
 │   ├── data/__init__.py        dataset registry and startup validation
-│   ├── data/india_map.py       20-state adjacency list, labels, graph layout
+│   ├── data/india_map.py       31-region adjacency list, state codes, graph layout
 │   ├── data/sample_graph.py    6-vertex wheel graph and 5-vertex tutorial graph
 │   ├── models/schemas.py       Pydantic request/response models
 │   └── tests/test_coloring.py  unit tests
+├── tools/build_india_map.py    dev-only: GeoJSON → local SVG geometry + border check (needs shapely)
 └── frontend/
     ├── vite.config.js          /api proxy to the backend
     └── src/
@@ -345,13 +348,15 @@ interactive-map-coloring/
         ├── api/client.js       the only module that calls fetch (timeouts, friendly errors)
         ├── hooks/useColoring.js    all app state: dataset, result, playback clock, verification
         ├── visualization/GraphSVG.jsx     draggable node-link graph (pointer events)
-        ├── visualization/IndiaMapSVG.jsx  stylized map geometry and rendering
-        ├── components/         Navbar, Sidebar, Button, StatCard, Legend, AdjacencyTable,
-        │                       ResultsTable, AlgorithmTimeline, StepPanel, Pseudocode,
-        │                       ColoringControls, ConflictBanner, VertexCard, ColorChip, LoadingState
+        ├── visualization/IndiaMapSVG.jsx  map rendering (fills, outlines, labels, fill animation)
+        ├── data/indiaGeometry.js          generated state boundaries (SVG paths, label anchors)
+        ├── components/         Navbar, Sidebar, Button, StatCard, CountUp, Legend, AdjacencyTable,
+        │                       ResultsTable, AlgorithmTimeline, StepPanel, Pseudocode, Segmented,
+        │                       VizStage (map / graph / split), ColoringControls, ConflictBanner,
+        │                       VertexCard, ColorChip, LoadingState
         ├── views/              Home, GraphView, MapView, ResultsView, ConflictsView,
         │                       HowItWorks, StatisticsView
-        ├── utils/constants.js  palette, navigation, phase names, speeds
+        ├── utils/constants.js  palette, navigation, phase names, speeds (all animation timings derive from these)
         ├── utils/helpers.js    color lookup, coloringAtCursor (replay), viewBox math
         └── styles/             variables.css (design tokens), globals.css, animations.css
 ```
@@ -376,7 +381,7 @@ interactive-map-coloring/
 16. **Why is minimum graph coloring computationally difficult?** Deciding whether χ(G) ≤ k is NP-complete for k ≥ 3, and no polynomial-time algorithm is known. That is why fast heuristics like greedy are used in practice.
 17. **What happens if the graph is complete?** Every vertex is adjacent to every other one, so greedy (and any algorithm) needs n colors. The unit tests check this for K₁ through K₇.
 18. **Can greedy coloring use more colors than necessary?** Yes, with a bad vertex order (see Q6). However, some order always exists for which greedy is optimal: color the vertices class by class following an optimal coloring.
-19. **How does this project convert a map into a graph?** Each state is a vertex. Two states get an edge if they share a land border, as listed in `backend/data/india_map.py`. The SVG map is only a drawing, and the adjacency list is the data the algorithm uses.
+19. **How does this project convert a map into a graph?** Each state is a vertex. Two states get an edge if they share a land border, as listed in `backend/data/india_map.py` (checked against real boundary geometry by `tools/build_india_map.py`). The SVG map is only a drawing, and the adjacency list is the data the algorithm uses.
 20. **How does conflict detection work?** `find_conflicts()` walks every edge (u, v) once and reports it if `color[u] == color[v]`. This takes O(V + E). A coloring is valid when there are no conflicts and every vertex has a color.
 21. **What is the Four Color Theorem?** Every planar map can be colored with at most 4 colors. Our India map is planar, and greedy used exactly 4 colors.
 22. **What is an independent set, and how does it relate to coloring?** A set of vertices with no edges between them. Each color class of a valid coloring is an independent set, as shown on the Results page.
@@ -387,17 +392,18 @@ interactive-map-coloring/
 |---|---|---|---|
 | 1 | **Home dashboard** | Open the app | The project's purpose and the Model → Color → Verify pipeline |
 | 2 | **Interactive graph + adjacency list** | Graph page → click *Maharashtra* | Region = vertex, border = edge, degree, and the adjacency list served by the backend |
-| 3 | **Algorithm running** | Map page → set speed to *Slow* → Run → Pause on a step with several colored neighbors (e.g. step 14, Maharashtra) | The algorithm's reasoning: current vertex, neighbor colors, blocked vs. available colors, and the highlighted pseudocode line |
+| 3 | **Algorithm running** | Map page → *Split* view → speed *Slow* → Run → Pause on a step with several colored neighbors (e.g. step 18, Maharashtra: neighbors use colors 1, 2, 3, so it gets 4) | The algorithm's reasoning on the map and the graph at once: current vertex, neighbor colors, blocked vs. available colors, and the highlighted pseudocode line |
 | 4 | **Fully colored map + legend** | Let the animation finish | The final valid 4-coloring, with a legend showing only the colors used |
 | 5 | **Results table** | Results page → sort by *Assigned Color* | The per-region assignment, color classes (independent sets), and the "Valid Coloring" verdict |
-| 6 | **Conflict detection demo** | Conflicts page → Simulate Conflict | The red banner, pulsing red regions, conflict edges, and the raw API response, which prove the verifier works |
+| 6 | **Conflict detection demo** | Conflicts page → Simulate Conflict | The red banner, red regions on the map, red vertices and edge on the graph, and the raw API response, which prove the verifier works |
 | 7 | **Statistics dashboard** | Statistics page | V, E, Δ, the O(V + E + VC) explanation, measured operation counts, the degree chart, and the Welsh–Powell comparison |
 
 Tip: a 1920×1080 browser window (projector size) gives the cleanest screenshots.
 
 ## Limitations
 
-* The India map is **stylized**. State shapes are simplified polygons, and the map covers 20 states (it leaves out Delhi, Jammu & Kashmir, Ladakh, Sikkim, and the North-East). The border list follows real borders between the included states.
+* Boundaries are simplified to about 3 km precision so the map stays light (≈ 75 KB). The small union territories Chandigarh, Puducherry, Dadra & Nagar Haveli and Daman & Diu, Lakshadweep and the Andaman & Nicobar Islands are drawn for completeness but are not graph vertices (they are enclaves or islands). Borders shorter than about 13 km are not treated as edges, which leaves out the Himachal Pradesh – Uttar Pradesh contact point.
+* Boundaries follow the source dataset (`udit-001/india-maps-data`); for Jammu and Kashmir and Ladakh this is the region as drawn there, which may differ from official Survey of India maps.
 * Datasets are fixed in Python files. There is no in-app graph editor. To add a dataset, add a module under `backend/data/` and register it in `data/__init__.py`. Map shapes exist only for the India dataset, so other datasets appear as node-link graphs.
 * Dragged node positions reset when you reload the page or switch datasets.
 * Greedy coloring is a heuristic. The app reports how many colors it used, but it does not compute the exact chromatic number.

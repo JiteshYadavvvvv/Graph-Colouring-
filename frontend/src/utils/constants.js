@@ -8,23 +8,29 @@ import {
   Table2,
 } from 'lucide-react';
 
-/** Display palette. Color k (from the backend) maps to PALETTE[k - 1]. */
+/**
+ * Display palette. Color k (from the backend) maps to PALETTE[k - 1].
+ * `ink` is the label color that stays readable on top of `fill`.
+ */
 export const PALETTE = [
-  { name: 'Blue', fill: '#3B6FE0' },
-  { name: 'Teal', fill: '#18B7A0' },
-  { name: 'Purple', fill: '#8B5CF6' },
-  { name: 'Orange', fill: '#F59E0B' },
-  { name: 'Olive', fill: '#5B8C1A' },
-  { name: 'Crimson', fill: '#C2185B' },
-  { name: 'Sky', fill: '#0EA5E9' },
-  { name: 'Brown', fill: '#A16207' },
+  { name: 'Blue', fill: '#4A72E0', ink: '#FFFFFF' },
+  { name: 'Teal', fill: '#1FAE98', ink: '#FFFFFF' },
+  { name: 'Purple', fill: '#8B6CF0', ink: '#FFFFFF' },
+  { name: 'Amber', fill: '#F2A83B', ink: '#172033' },
+  { name: 'Rose', fill: '#E0648A', ink: '#FFFFFF' },
+  { name: 'Green', fill: '#5E9F3E', ink: '#FFFFFF' },
+  { name: 'Sky', fill: '#3AA6DA', ink: '#FFFFFF' },
+  { name: 'Brown', fill: '#A5794D', ink: '#FFFFFF' },
 ];
 
-export const NEUTRAL_FILL = '#E6EAF2';
-export const NEIGHBOR_FILL = '#CFF3F4';
+export const NEUTRAL_FILL = '#E7EBF3';
+export const CONTEXT_FILL = '#F1F3F8';
+export const NEIGHBOR_FILL = '#D4F1F1';
+export const ACTIVE_FILL = '#ECE8FE';
 export const CONFLICT_RED = '#E5484D';
 export const ACTIVE_RING = '#6C5CE7';
 export const NEIGHBOR_RING = '#12A4B5';
+export const SELECT_RING = '#172033';
 
 /** Sidebar navigation. `id` is also the URL hash. */
 export const VIEWS = [
@@ -52,9 +58,33 @@ export const PHASE_LABELS = [
   'Assign color',
 ];
 
-/** Milliseconds per phase for speed levels 1 (slow) … 5 (fast). */
-export const SPEED_DELAYS = [1500, 950, 620, 360, 150];
-export const SPEED_NAMES = ['Very slow', 'Slow', 'Normal', 'Fast', 'Very fast'];
+/**
+ * Playback speeds. `ms` is how long each of the four phases of a step stays
+ * on screen. Every animation duration in the visualizations is derived from
+ * this one value (see phaseTiming below), so nothing else hardcodes timings.
+ */
+export const SPEEDS = [
+  { id: 'slow', label: 'Slow', ms: 1800 },
+  { id: 'normal', label: 'Normal', ms: 1100 },
+  { id: 'fast', label: 'Fast', ms: 500 },
+  { id: 'instant', label: 'Instant', ms: 100 },
+];
+export const DEFAULT_SPEED = 'normal';
+
+export function speedMs(id) {
+  return (SPEEDS.find((s) => s.id === id) ?? SPEEDS[1]).ms;
+}
+
+/** Animation durations (in seconds, for Framer Motion) derived from the phase length. */
+export function phaseTiming(ms) {
+  const phase = ms / 1000;
+  return {
+    phase,
+    fill: Math.min(0.9, phase * 0.7), // color spreading through a region
+    glow: Math.min(1.6, phase * 1.4), // halo fading after assignment
+    ui: Math.min(0.35, phase * 0.5), // strokes, highlights, panels
+  };
+}
 
 export const STRATEGIES = [
   { id: 'natural', label: 'Natural order' },
