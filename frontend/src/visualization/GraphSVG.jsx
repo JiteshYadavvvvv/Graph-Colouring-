@@ -48,14 +48,45 @@ export default function GraphSVG({
   const [moved, setMoved] = useState(false);
   const svgRef = useRef(null);
   const drag = useRef(null);
+  const tween = useRef(0);
   const reduceMotion = useReducedMotion();
   const t = phaseTiming(phaseMs);
 
   // A different dataset means a different set of nodes: start from its layout.
   useEffect(() => {
+    cancelAnimationFrame(tween.current);
     setPositions(initialPositions(graph));
     setMoved(false);
   }, [graph]);
+
+  useEffect(() => () => cancelAnimationFrame(tween.current), []);
+
+  // Glide every node (and therefore every edge) back to the default layout.
+  const resetLayout = () => {
+    const target = initialPositions(graph);
+    setMoved(false);
+    if (reduceMotion) {
+      setPositions(target);
+      return;
+    }
+    const from = positions;
+    const start = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - start) / 450);
+      const e = 1 - (1 - p) ** 3;
+      setPositions(
+        Object.fromEntries(
+          graph.vertices.map((v) => [
+            v,
+            { x: from[v].x + (target[v].x - from[v].x) * e, y: from[v].y + (target[v].y - from[v].y) * e },
+          ]),
+        ),
+      );
+      if (p < 1) tween.current = requestAnimationFrame(step);
+    };
+    cancelAnimationFrame(tween.current);
+    tween.current = requestAnimationFrame(step);
+  };
 
   const animating = Boolean(highlight.active);
   // During the animation the current vertex is in focus; otherwise hover, then selection.
@@ -96,6 +127,7 @@ export default function GraphSVG({
     const d = drag.current;
     if (!d || !draggable) return;
     if (!d.moved && Math.hypot(event.clientX - d.startX, event.clientY - d.startY) < 4) return;
+    cancelAnimationFrame(tween.current);
     d.moved = true;
     const p = toSvgPoint(event);
     const x = clamp(p.x + d.dx, box.x + r, box.x + box.w - r);
@@ -311,10 +343,7 @@ export default function GraphSVG({
       {draggable && moved && (
         <button
           className="btn btn-ghost btn-sm layout-reset"
-          onClick={() => {
-            setPositions(initialPositions(graph));
-            setMoved(false);
-          }}
+          onClick={resetLayout}
         >
           Reset layout
         </button>

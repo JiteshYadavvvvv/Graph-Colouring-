@@ -1,5 +1,6 @@
 import AlgorithmTimeline from '../components/AlgorithmTimeline';
-import ColoringControls from '../components/ColoringControls';
+import ColoringControls, { ShortcutHint } from '../components/ColoringControls';
+import { useShortcuts } from '../hooks/useShortcuts';
 import Legend from '../components/Legend';
 import Pseudocode from '../components/Pseudocode';
 import StepPanel from '../components/StepPanel';
@@ -14,6 +15,7 @@ export function legendPulse(cs) {
 }
 
 export default function MapView({ cs }) {
+  useShortcuts(cs);
   const { graph, coloring } = cs;
   const isMap = graph.kind === 'map';
 
@@ -24,6 +26,7 @@ export default function MapView({ cs }) {
           <span className="eyebrow">Map View · replaying backend steps</span>
           <h1>{isMap ? 'Coloring the Map of India' : `Coloring the ${graph.name}`}</h1>
         </div>
+        <ShortcutHint />
       </header>
 
       <ColoringControls coloringState={cs} />

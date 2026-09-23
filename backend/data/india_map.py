@@ -13,9 +13,9 @@ Where the edges come from
 -------------------------
 Every edge below was checked against real boundary geometry with
 tools/build_india_map.py, which measures the length of each shared land
-border. Two regions are adjacent when they share a border of at least ~13 km.
-That rule leaves out the Himachal Pradesh – Uttar Pradesh contact, which is
-only a few kilometres long (a near tripoint), and point contacts such as
+border. Two regions are adjacent when they share a border of at least ~10 km.
+That keeps the short Himachal Pradesh – Uttar Pradesh border (listed in
+official border descriptions) and leaves out mere point contacts such as
 Uttarakhand – Haryana.
 
 The small union territories Chandigarh, Puducherry, Dadra & Nagar Haveli and
@@ -37,14 +37,15 @@ DESCRIPTION = (
 ADJACENCY = {
     "Jammu and Kashmir": ["Ladakh", "Himachal Pradesh", "Punjab"],
     "Ladakh":            ["Jammu and Kashmir", "Himachal Pradesh"],
-    "Himachal Pradesh":  ["Jammu and Kashmir", "Ladakh", "Punjab", "Haryana", "Uttarakhand"],
+    "Himachal Pradesh":  ["Jammu and Kashmir", "Ladakh", "Punjab", "Haryana", "Uttarakhand",
+                          "Uttar Pradesh"],
     "Punjab":            ["Jammu and Kashmir", "Himachal Pradesh", "Haryana", "Rajasthan"],
     "Uttarakhand":       ["Himachal Pradesh", "Uttar Pradesh"],
     "Haryana":           ["Punjab", "Himachal Pradesh", "Delhi", "Rajasthan", "Uttar Pradesh"],
     "Delhi":             ["Haryana", "Uttar Pradesh"],
     "Rajasthan":         ["Punjab", "Haryana", "Uttar Pradesh", "Madhya Pradesh", "Gujarat"],
-    "Uttar Pradesh":     ["Uttarakhand", "Haryana", "Delhi", "Rajasthan", "Madhya Pradesh",
-                          "Chhattisgarh", "Jharkhand", "Bihar"],
+    "Uttar Pradesh":     ["Uttarakhand", "Himachal Pradesh", "Haryana", "Delhi", "Rajasthan",
+                          "Madhya Pradesh", "Chhattisgarh", "Jharkhand", "Bihar"],
     "Gujarat":           ["Rajasthan", "Madhya Pradesh", "Maharashtra"],
     "Madhya Pradesh":    ["Rajasthan", "Uttar Pradesh", "Chhattisgarh", "Maharashtra", "Gujarat"],
     "Bihar":             ["Uttar Pradesh", "Jharkhand", "West Bengal"],

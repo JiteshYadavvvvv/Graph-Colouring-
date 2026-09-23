@@ -88,7 +88,7 @@ SIMPLIFY_TOLERANCE = 0.9         # SVG units (≈ 3 km), applied to the whole co
 MIN_RING_AREA = 6.0              # drop tiny specks (SVG units²)
 ISLAND_RING_AREA = 0.15          # island territories keep much smaller islands
 ISLAND_TERRITORIES = {"Lakshadweep", "Andaman and Nicobar Islands"}
-MIN_SHARED_BORDER = 4.0          # SVG units (≈ 13 km): shorter contacts are not edges
+MIN_SHARED_BORDER = 3.0          # SVG units (≈ 10 km): shorter contacts (tripoints) are not edges
 
 
 def lambert_conformal_conic(lat1=12.4729, lat2=35.1728, lat0=24.0, lon0=80.0):

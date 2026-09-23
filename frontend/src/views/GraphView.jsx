@@ -1,7 +1,8 @@
 import { Hash, Network, Palette, ShieldAlert } from 'lucide-react';
 import AdjacencyTable from '../components/AdjacencyTable';
 import AlgorithmTimeline from '../components/AlgorithmTimeline';
-import ColoringControls from '../components/ColoringControls';
+import ColoringControls, { ShortcutHint } from '../components/ColoringControls';
+import { useShortcuts } from '../hooks/useShortcuts';
 import Legend from '../components/Legend';
 import StatCard from '../components/StatCard';
 import StepPanel from '../components/StepPanel';
@@ -11,6 +12,7 @@ import GraphSVG from '../visualization/GraphSVG';
 import { legendPulse } from './MapView';
 
 export default function GraphView({ cs }) {
+  useShortcuts(cs);
   const { graph, coloring, verification } = cs;
   const showVertexCard = cs.selected && !cs.animating;
 
@@ -22,6 +24,7 @@ export default function GraphView({ cs }) {
           <h1>{graph.name} as a Graph</h1>
           <p className="muted">Drag the nodes to rearrange them. Click a vertex to see its neighbors.</p>
         </div>
+        <ShortcutHint />
       </header>
 
       <div className="stat-grid">

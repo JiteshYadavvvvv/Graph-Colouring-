@@ -1,4 +1,5 @@
 import { ArrowDownWideNarrow, ChevronsRight, Gauge, Pause, Play, RotateCcw, StepForward } from 'lucide-react';
+import { SHORTCUTS } from '../hooks/useShortcuts';
 import { SPEEDS, STRATEGIES } from '../utils/constants';
 import Button from './Button';
 import Segmented from './Segmented';
@@ -91,5 +92,18 @@ export default function ColoringControls({ coloringState }) {
         </label>
       </div>
     </div>
+  );
+}
+
+/** Small legend of the keyboard shortcuts (see hooks/useShortcuts.js). */
+export function ShortcutHint() {
+  return (
+    <p className="shortcut-hint" aria-label="Keyboard shortcuts">
+      {SHORTCUTS.map((s) => (
+        <span key={s.keys}>
+          <kbd>{s.keys}</kbd> {s.action}
+        </span>
+      ))}
+    </p>
   );
 }

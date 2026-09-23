@@ -864,6 +864,30 @@ body::before {
   padding-inline: 10px;
 }
 
+.shortcut-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0 0 4px;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: #fff;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-2);
+}
+
 .control-settings {
   display: flex;
   align-items: center;
@@ -962,6 +986,36 @@ body::before {
 
 .toggle input:focus-visible + .toggle-track {
   box-shadow: var(--focus);
+}
+
+/* Subtle elevation for cards the user interacts with. */
+.action-card,
+.concept,
+.fact,
+.dataset-option,
+.completion-stats > div {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.action-card:hover,
+.concept:hover,
+.fact:hover,
+.dataset-option:hover,
+.completion-stats > div:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.dataset-option:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.toggle:hover .toggle-track {
+  background: #b9c3d6;
+}
+
+.toggle:hover input:checked + .toggle-track {
+  background: var(--primary-600);
 }
 
 /* ============ Visualization layout ============ */
@@ -2821,6 +2875,10 @@ body::before {
   .btn-run {
     min-width: 0;
     flex: 1 1 100%;
+  }
+
+  .shortcut-hint {
+    display: none;
   }
 
   .control-settings {
