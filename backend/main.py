@@ -5,6 +5,7 @@ Run:  uvicorn main:app --reload
 Docs: http://127.0.0.1:8000/docs
 """
 
+import os
 import time
 
 from fastapi import FastAPI, HTTPException, Request
@@ -36,13 +37,22 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# The Vite dev server proxies /api, but CORS is also enabled so the frontend
-# can talk to the API directly (e.g. with VITE_API_URL set).
+# The Vite dev server proxies /api, so local development needs no CORS. A
+# deployed frontend calls the API from another origin: set FRONTEND_URL to
+# that origin (comma-separated for several, e.g. production + a custom domain).
+# If it is not set, any origin may read the API. That is safe here because the
+# API is public, read-only, and uses no cookies or credentials.
+FRONTEND_ORIGINS = [
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("FRONTEND_URL", "").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=FRONTEND_ORIGINS or ["*"],
     allow_methods=["GET", "POST"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type"],
 )
 
 

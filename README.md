@@ -63,9 +63,9 @@ A second, abstract dataset (a 6-vertex wheel graph) shows that the same algorith
 
 ## Tech Stack
 
-**Backend:** Python 3.10+, FastAPI, Uvicorn, Pydantic. The coloring algorithm uses no graph library (no NetworkX).
+**Backend:** Python 3.10+ (3.12 on Vercel), FastAPI, Uvicorn, Pydantic. The coloring algorithm uses no graph library (no NetworkX).
 
-**Frontend:** React 18, Vite 5, plain JavaScript, native SVG, plain CSS, `framer-motion` (animation), `lucide-react` (icons). There is no CSS framework and nothing is loaded from a CDN. All fonts are system fonts.
+**Frontend:** React 18, Vite 8, plain JavaScript, native SVG, plain CSS, `framer-motion` (animation), `lucide-react` (icons). There is no CSS framework and nothing is loaded from a CDN. All fonts are system fonts.
 
 ## Architecture
 
@@ -306,6 +306,16 @@ Optional settings:
 * `VITE_API_URL=http://host:port` makes the browser call that backend directly (the backend already allows CORS).
 * `npm run build && npm run preview` serves a production build on port 4173, using the same proxy.
 
+### Deploying the backend on Vercel
+
+The backend is a plain FastAPI app that Vercel imports as `main:app` (no uvicorn on Vercel). Create a **separate Vercel project** for it:
+
+* **Root Directory:** `backend` (Project Settings → Build and Deployment). This setting cannot live in `vercel.json`.
+* **Framework Preset:** FastAPI. `backend/vercel.json` sets `"framework": "fastapi"`, which overrides the dashboard, so a project that was auto-detected as *Services* (because the repository root holds both `frontend/` and `backend/`) builds correctly.
+* **Python:** 3.12 (`backend/.python-version`). Dependencies come from `backend/requirements.txt`.
+* **Environment variable (optional):** `FRONTEND_URL` = the deployed frontend's origin, e.g. `https://your-frontend.vercel.app` (comma-separate several). When set, only those origins may call the API from a browser; when unset, any origin may (the API is public and read-only).
+* After deploying, the API lives at `https://<backend-project>.vercel.app/api/...`; `/docs` shows the interactive API docs. Use `https://<backend-project>.vercel.app` (no `/api`) as the frontend's `VITE_API_URL`.
+
 ### Deploying the frontend (Vercel, Netlify, …)
 
 * **Root directory:** `frontend` · **Install:** `npm install` (or `npm ci`) · **Build:** `npm run build` · **Output:** `dist`. No `--force` / `--legacy-peer-deps` flags are needed.
@@ -339,7 +349,9 @@ curl -X POST http://127.0.0.1:8000/api/conflicts -H "Content-Type: application/j
 interactive-map-coloring/
 ├── backend/
 │   ├── main.py                 FastAPI app: 5 endpoints, error handling, CORS
-│   ├── requirements.txt        fastapi, uvicorn, pydantic
+│   ├── requirements.txt        fastapi, pydantic (+ uvicorn for local runs)
+│   ├── vercel.json             Vercel: FastAPI preset, excludes tests from the bundle
+│   ├── .python-version         3.12 (Vercel runtime)
 │   ├── algorithms/coloring.py  greedy_coloring, greedy_coloring_with_steps, is_valid_coloring,
 │   │                           find_conflicts, vertex_order (natural / Welsh–Powell), graph_statistics
 │   ├── data/__init__.py        dataset registry and startup validation
