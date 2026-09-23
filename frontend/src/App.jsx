@@ -1,6 +1,7 @@
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { TriangleAlert, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { API_BASE_URL } from './api/client';
 import { EmptyState, ErrorState } from './components/LoadingState';
 import LoadingState from './components/LoadingState';
 import Navbar from './components/Navbar';
@@ -24,6 +25,13 @@ const VIEW_COMPONENTS = {
   how: HowItWorks,
   stats: StatisticsView,
 };
+
+/** Troubleshooting hint for developers; production shows none. */
+function devHint(error) {
+  if (!import.meta.env.DEV || !error) return null;
+  if (error.kind === 'network') return 'cd backend && uvicorn main:app --reload';
+  return `API base: ${API_BASE_URL || '(this origin, proxied by Vite to :8000)'}`;
+}
 
 function viewFromHash() {
   const id = window.location.hash.replace('#', '');
@@ -53,8 +61,9 @@ export default function App() {
   if (load.status === 'error') {
     content = (
       <ErrorState
-        title={load.error?.kind === 'network' ? 'Coloring engine offline' : 'Could not load the dataset'}
+        title={load.error?.kind === 'network' ? 'Coloring engine is unreachable' : 'Could not load the dataset'}
         message={load.error?.message}
+        hint={devHint(load.error)}
         onRetry={cs.retryLoad}
       />
     );
@@ -81,7 +90,7 @@ export default function App() {
         onReset={cs.reset}
       />
       <div className="app-body">
-        <Sidebar view={view} onNavigate={navigate} graph={graph} connected={load.status !== 'error'} />
+        <Sidebar view={view} onNavigate={navigate} graph={graph} engine={cs.engine} />
         <main id="main-content" className="main" tabIndex={-1}>
           <AnimatePresence>
             {cs.actionError && (

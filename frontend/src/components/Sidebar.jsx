@@ -1,7 +1,15 @@
 import { motion } from 'framer-motion';
 import { VIEWS } from '../utils/constants';
 
-export default function Sidebar({ view, onNavigate, graph, connected }) {
+const ENGINE_STATUS = {
+  checking: { dot: 'pending', text: 'Checking coloring engine…' },
+  online: { dot: 'ok', text: 'Coloring engine online' },
+  offline: { dot: 'down', text: 'Engine unreachable' },
+  error: { dot: 'down', text: 'Engine reported an error' },
+};
+
+export default function Sidebar({ view, onNavigate, graph, engine }) {
+  const status = ENGINE_STATUS[engine] ?? ENGINE_STATUS.checking;
   return (
     <nav className="sidebar" aria-label="Main navigation">
       <ul className="nav-list">
@@ -34,9 +42,9 @@ export default function Sidebar({ view, onNavigate, graph, connected }) {
       </ul>
 
       <div className="sidebar-footer">
-        <div className="engine-status">
-          <span className={`dot ${connected ? 'ok' : 'down'}`} aria-hidden="true" />
-          {connected ? 'Coloring engine online' : 'Engine unreachable'}
+        <div className="engine-status" role="status" title="Result of GET /api/health">
+          <span className={`dot ${status.dot}`} aria-hidden="true" />
+          {status.text}
         </div>
         {graph && (
           <div className="sidebar-dataset">

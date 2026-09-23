@@ -345,6 +345,10 @@ body::before {
   background: var(--success);
 }
 
+.dot.pending {
+  background: var(--warning);
+}
+
 .dot.down {
   background: var(--danger);
 }

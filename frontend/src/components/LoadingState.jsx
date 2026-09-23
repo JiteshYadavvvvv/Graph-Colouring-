@@ -11,7 +11,7 @@ export default function LoadingState({ label = 'Loading…' }) {
   );
 }
 
-export function ErrorState({ title = 'Something went wrong', message, onRetry }) {
+export function ErrorState({ title = 'Something went wrong', message, hint, onRetry }) {
   return (
     <motion.div
       className="state-box state-error"
@@ -24,7 +24,7 @@ export function ErrorState({ title = 'Something went wrong', message, onRetry })
       </div>
       <h2>{title}</h2>
       <p>{message}</p>
-      <code className="state-hint">cd backend &amp;&amp; uvicorn main:app --reload</code>
+      {hint && <code className="state-hint">{hint}</code>}
       {onRetry && (
         <Button icon={RefreshCw} onClick={onRetry}>
           Retry connection

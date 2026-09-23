@@ -320,7 +320,8 @@ The backend is a plain FastAPI app that Vercel imports as `main:app` (no uvicorn
 
 * **Root directory:** `frontend` · **Install:** `npm install` (or `npm ci`) · **Build:** `npm run build` · **Output:** `dist`. No `--force` / `--legacy-peer-deps` flags are needed.
 * **Node:** `^20.19.0 || >=22.12.0` (required by Vite 8; declared in `package.json` → `engines`).
-* **`VITE_API_URL`** must be set in the platform's environment variables to the deployed FastAPI backend, e.g. `https://your-backend.example.com` (no trailing `/api`). Vite inlines it at build time, so redeploy after changing it. Without it, the built app calls `/api` on its own host, which only works behind a proxy.
+* **`VITE_API_URL`** is the FastAPI origin used by production builds. It is committed in `frontend/.env.production` (`https://backend-tau-eight-78.vercel.app`, origin only, no `/api`). A `VITE_API_URL` set in the hosting platform's environment variables overrides that file. Vite embeds the value at build time, so **redeploy the frontend after changing it**. If a production build has no value, `vite build` prints a warning and the app would call `/api` on its own host (404).
+* `npm run dev` ignores `.env.production`: it calls `/api` on the dev server, which proxies to `http://127.0.0.1:8000`.
 * The backend already allows cross-origin requests (CORS), so no backend change is needed.
 
 ## Testing
