@@ -306,6 +306,13 @@ Optional settings:
 * `VITE_API_URL=http://host:port` makes the browser call that backend directly (the backend already allows CORS).
 * `npm run build && npm run preview` serves a production build on port 4173, using the same proxy.
 
+### Deploying the frontend (Vercel, Netlify, …)
+
+* **Root directory:** `frontend` · **Install:** `npm install` (or `npm ci`) · **Build:** `npm run build` · **Output:** `dist`. No `--force` / `--legacy-peer-deps` flags are needed.
+* **Node:** `^20.19.0 || >=22.12.0` (required by Vite 8; declared in `package.json` → `engines`).
+* **`VITE_API_URL`** must be set in the platform's environment variables to the deployed FastAPI backend, e.g. `https://your-backend.example.com` (no trailing `/api`). Vite inlines it at build time, so redeploy after changing it. Without it, the built app calls `/api` on its own host, which only works behind a proxy.
+* The backend already allows cross-origin requests (CORS), so no backend change is needed.
+
 ## Testing
 
 ### Algorithm unit tests (standard library only)
