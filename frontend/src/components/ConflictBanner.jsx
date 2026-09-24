@@ -48,9 +48,9 @@ export default function ConflictBanner({ graph, verification, verifying }) {
             {name(first.region_a)} <span aria-label="and">↔</span> {name(first.region_b)}
           </p>
           <p>
-            {name(first.region_a)} and {name(first.region_b)} have the same color (<b>Color {first.color}</b>) but
-            are adjacent{graph?.kind === 'map' ? ' (they share a border)' : ''}. Adjacent vertices must get
-            different colors. The backend found this by checking all {verification.checked_edges} edges.
+            <b>Same color assigned to adjacent vertices</b>: both use Color {first.color}
+            {graph?.kind === 'map' ? ', and the two states share a border' : ''}. Adjacent vertices must get different
+            colors. The backend found this by checking all {verification.checked_edges} edges.
           </p>
           {rest.length > 0 && (
             <p className="small">

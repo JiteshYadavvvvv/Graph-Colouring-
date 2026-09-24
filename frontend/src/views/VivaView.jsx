@@ -3,7 +3,7 @@ import { CircleCheck, CircleX, Eye, EyeOff, RotateCcw, Trophy } from 'lucide-rea
 import { useState } from 'react';
 import Button from '../components/Button';
 import Segmented from '../components/Segmented';
-import { QUIZ, VIVA_QUESTIONS } from '../content/viva';
+import { QUIZ, VIVA_QUESTIONS, VIVA_TOPICS } from '../content/viva';
 
 function QuestionCard({ item, index, graph, open, onToggle }) {
   const extra = graph ? item.live?.(graph) : null;
@@ -69,11 +69,25 @@ function Questions({ graph }) {
           {allOpen ? 'Hide all answers' : 'Show all answers'}
         </Button>
       </div>
-      <ol className="viva-list">
-        {VIVA_QUESTIONS.map((item, i) => (
-          <QuestionCard key={item.id} item={item} index={i} graph={graph} open={open.has(item.id)} onToggle={() => toggle(item.id)} />
-        ))}
-      </ol>
+      {VIVA_TOPICS.map((topic) => (
+        <section key={topic.id} className="viva-topic" aria-labelledby={`viva-topic-${topic.id}`}>
+          <h2 id={`viva-topic-${topic.id}`} className="viva-topic-title">
+            {topic.title}
+          </h2>
+          <ol className="viva-list">
+            {topic.questions.map((item) => (
+              <QuestionCard
+                key={item.id}
+                item={item}
+                index={VIVA_QUESTIONS.indexOf(item)}
+                graph={graph}
+                open={open.has(item.id)}
+                onToggle={() => toggle(item.id)}
+              />
+            ))}
+          </ol>
+        </section>
+      ))}
     </>
   );
 }
@@ -103,7 +117,7 @@ function Quiz() {
             ? 'Perfect. You are ready for the viva.'
             : ratio >= 0.7
               ? 'Well done. Review the questions you missed in the Questions tab.'
-              : 'Keep practicing: the How It Works page walks through every idea.'}
+              : 'Keep practicing: the Learn Graph Coloring page walks through every idea.'}
         </p>
         <Button icon={RotateCcw} onClick={restart}>
           Try again

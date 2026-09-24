@@ -103,16 +103,16 @@ Applied to a political map, the question becomes: *how can the states of India b
 | **Header** | AIT logo and institute name, project title, dataset selector, **Export Report**, **Viva Mode** and **Reset Experiment** buttons |
 | **Footer** | On the Home and Project Team pages: the project's name and purpose, where it was built, links to the main sections, a large *CHROMA* wordmark, and © 2026 |
 | **Datasets** | Gallery of all datasets with a live preview, graph type, characteristics, and computed V, E, Δ and χ |
-| **Map view** | Real India state/UT boundaries (local SVG), hover tooltips, click/keyboard selection with neighbor highlighting and the selected region's edges, optional overlay of all graph edges, **Show vertex degrees**, and a **Map / Graph / Split** switch that keeps both views in sync |
+| **Map + Graph workspace** | The geographical map (left) and its graph (right) side by side, driven by one shared state and the same stable IDs: selecting a state highlights its vertex, its neighbors and its edges in both views, and selecting a vertex highlights the region. A narration strip explains every phase of the algorithm in plain language ("Selected Maharashtra." → "Colors 1, 2 and 3 are already used." → "Assigning Color 4 to Maharashtra."), built from the backend's step data. Also: real India state/UT boundaries (local SVG), tooltips, **Show vertex degrees**, an optional overlay of all graph edges, and a **Map / Graph / Map + Graph** switch |
 | **Graph view** | Draggable node-link graph, degree badges, neighbor highlighting, vertex details card, adjacency list as a tree or a table |
 | **Execution modes** | **Auto Play**, **Step-by-Step** and **Instant**. Each backend step is replayed in five phases: *choose vertex → check neighboring colors → find available color → assign color → move to next vertex* |
-| **Playback bar** | Previous / Play-Pause / Next / Restart, speed **0.5× 1× 2× 4×**, "Step 7 / 31", vertex order (natural, Welsh–Powell, DSATUR); the step panel shows the current vertex, why it was chosen, neighbors and their colors, available colors and the selected color |
-| **Graph statistics panel** | Dataset, algorithm, vertices, edges, max/min/average degree, colors used, minimum colors χ, conflicts, and validity, all computed from the actual graph and result |
-| **Conflict detection** | `POST /api/conflicts` checks every edge. Conflicting vertices get a red outline, a ⚠ icon and a text explanation (never color alone); **Simulate Conflict** breaks the coloring on purpose, **Fix Coloring** restores the algorithm's result |
+| **Playback bar** | Previous / Play-Pause / Next / Restart, speed **0.5× 1× 2× 4×**, "Step 7 / 31", vertex order (natural, Welsh–Powell, DSATUR); the execution panel shows the current vertex, why it was chosen, its neighbors and their colors, the used and available colors and the selected color |
+| **Graph statistics panel** | Dataset, algorithm, vertices, edges, max/min/average degree, colors used, minimum colors χ, conflicts, execution time and validity, all computed from the actual graph and result |
+| **Conflict detection** | `POST /api/conflicts` checks every edge. Conflicting vertices get a red outline, a ⚠ icon and a text explanation (never color alone); **Simulate Conflict** breaks the coloring on purpose, **Fix Coloring** runs the algorithm again on the backend and verifies the new result |
 | **Results & analytics** | Colors used, color distribution ("Color 1 → 10 vertices"), conflicts, vertices processed, neighbor checks, edges verified, execution time, sortable assignment table, χ comparison |
 | **Compare** | Greedy vs. Welsh–Powell vs. DSATUR on the same graph: colors, execution time, vertex ordering, validity, and a replay button for each |
 | **Graph Playground** | Add / delete / rename vertices, add / delete edges (canvas or accessible forms), random graphs G(n, p), real-world examples, validation (no self-loops, duplicate edges or duplicate names), then color on the backend |
-| **Learning** | How It Works (8 key terms, the algorithm in 6 steps, a live tutorial, pseudocode, complexity), Applications (7 real-world uses), Viva Mode (14 questions with answers + a 10-question quiz with scoring) |
+| **Learning** | *Learn Graph Coloring* (seven illustrated lessons: graph, vertex, edge, graph coloring, chromatic number, greedy coloring, and why map coloring becomes graph coloring; then the algorithm in 6 steps, a live tutorial, pseudocode and complexity), Applications (7 real-world uses), Viva Mode (20 questions in 6 topics with answers, plus a 13-question scored quiz) |
 | **Export** | Coloring result (JSON, CSV), graph adjacency list (TXT), algorithm execution report (TXT, with timestamp) |
 | **Quality** | Friendly error states with Retry / Reset / Back to datasets, keyboard shortcuts and focus styles, ARIA labels, `prefers-reduced-motion`, responsive from 390 px phones to 1920 px projectors, fully offline |
 
@@ -524,7 +524,7 @@ The frontend and backend are deployed as **two separate Vercel projects**. Deplo
 
 ## 19. Viva Questions
 
-The app's **Viva Mode** contains these questions with answers (some answers include live figures from the loaded dataset) and a scored quiz.
+The app's **Viva Mode** groups 20 questions into six topics (graph basics, from map to graph, graph coloring, complexity, conflicts and verification, applications and design), with answers (some include live figures from the loaded dataset) and a scored quiz.
 
 1. **What is graph coloring?** Assigning a color to every vertex so that the endpoints of every edge have different colors, usually with as few colors as possible.
 2. **Why are states represented as vertices?** Coloring only cares about which regions must differ, not their shape; each state needs exactly one color, so it is one vertex.
@@ -540,6 +540,12 @@ The app's **Viva Mode** contains these questions with answers (some answers incl
 12. **What are real-world applications?** Exam and course timetabling, register allocation, frequency and Wi-Fi channel assignment, job scheduling, map coloring.
 13. **How do Welsh–Powell and DSATUR differ from greedy?** Same rule, different order: Welsh–Powell sorts by degree once; DSATUR picks the most saturated vertex at each step.
 14. **Why does India need only four colors?** Its graph is planar, and the Four Color Theorem guarantees 4 colors for every planar graph. The backend proves that 3 are not enough.
+15. **What is a graph?** G = (V, E): a set of vertices and a set of edges, each joining two vertices. It records only which objects are connected.
+16. **What is a vertex, and what is its degree?** One object of the graph; its degree is the number of edges touching it. The largest degree is Δ (9 for Uttar Pradesh).
+17. **What is an edge?** A connection between two vertices; here undirected, so both states' adjacency lists contain each other.
+18. **What is an adjacency list, and why use it here?** A list of neighbors per vertex: O(V + E) memory instead of O(V²) for a matrix, and neighbors in O(deg v), which is what greedy needs at every step.
+19. **How is the map of India transformed into a graph?** Each state becomes a vertex with a stable ID (IN-MH); two vertices are joined when the regions share a land border of at least ~10 km, measured from real boundary data. The algorithm works on this adjacency list, not on the shapes.
+20. **How does conflict detection work?** Every edge (u, v) is checked once for color[u] = color[v], in O(V + E); `POST /api/conflicts` runs it after every coloring and after Simulate Conflict.
 
 Further questions worth preparing: What is an adjacency list, and why use it instead of a matrix? (O(V + E) vs O(V²) space for a sparse graph.) What is an independent set? (Each color class is one.) What does greedy do on a complete graph Kn? (n colors, which is optimal.) Is there always a vertex order for which greedy is optimal? (Yes: order the vertices class by class following an optimal coloring.)
 

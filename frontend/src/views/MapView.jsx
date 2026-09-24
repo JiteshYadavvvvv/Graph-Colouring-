@@ -9,6 +9,12 @@ import VertexCard from '../components/VertexCard';
 import VizStage from '../components/VizStage';
 import { useShortcuts } from '../hooks/useShortcuts';
 
+/**
+ * The main workspace: the geographical map and its graph side by side, both
+ * driven by the same state, with the algorithm's execution panel below.
+ *
+ *   map → graph representation → graph coloring → algorithm execution → result
+ */
 export default function MapView({ cs }) {
   useShortcuts(cs);
   const { graph, coloring } = cs;
@@ -18,8 +24,8 @@ export default function MapView({ cs }) {
     <div className="page">
       <header className="page-header compact">
         <div>
-          <span className="eyebrow">Map View · replaying backend steps</span>
-          <h1>{isMap ? 'Coloring the Map of India' : `Coloring the ${graph.name}`}</h1>
+          <span className="eyebrow">Workspace · map → graph → coloring</span>
+          <h1>{isMap ? 'Map and Graph Workspace' : `Coloring the ${graph.name}`}</h1>
         </div>
         <ShortcutHint />
       </header>
@@ -27,13 +33,13 @@ export default function MapView({ cs }) {
       <ColoringControls coloringState={cs} />
       <InlineConflicts cs={cs} />
 
-      <div className="viz-layout">
-        <div className="viz-main">
-          <VizStage cs={cs} />
-          <Pseudocode phase={cs.animating ? cs.cursor.phase : null} strategy={cs.result?.strategy ?? cs.strategy} />
-        </div>
+      <VizStage cs={cs} defaultMode={isMap ? 'split' : 'graph'} narration />
 
-        <aside className="viz-side">
+      <div className="workspace-panels">
+        <div className="panel-col">
+          <StepPanel coloringState={cs} />
+        </div>
+        <div className="panel-col">
           {cs.selected && !cs.animating && (
             <VertexCard
               graph={graph}
@@ -43,11 +49,13 @@ export default function MapView({ cs }) {
               onSelect={cs.setSelected}
             />
           )}
-          <StepPanel coloringState={cs} />
           <GraphInfoPanel cs={cs} />
           <Legend coloring={coloring} pulse={legendPulse(cs)} />
+        </div>
+        <div className="panel-col">
+          <Pseudocode phase={cs.animating ? cs.cursor.phase : null} strategy={cs.result?.strategy ?? cs.strategy} />
           <AlgorithmTimeline coloringState={cs} />
-        </aside>
+        </div>
       </div>
     </div>
   );

@@ -900,14 +900,12 @@ kbd {
 
 /* Subtle elevation for cards the user interacts with. */
 .action-card,
-.concept,
 .fact,
 .completion-stats > div {
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .action-card:hover,
-.concept:hover,
 .fact:hover,
 .completion-stats > div:hover {
   transform: translateY(-2px);
@@ -966,11 +964,11 @@ kbd {
 .viz-stage.mode-split {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   gap: 12px;
 }
 
-.viz-stage.mode-split .graph-svg-wrap {
+.viz-stage.mode-split .viz-pane + .viz-pane {
   border-left: 1px solid var(--border);
   padding-left: 12px;
 }
@@ -2211,29 +2209,6 @@ kbd {
 }
 
 /* ============ How it works ============ */
-.concepts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.concept {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 6px;
-  padding: 22px;
-}
-
-.concept h3 {
-  font-size: 1.15rem;
-}
-
-.concept p {
-  color: var(--text-2);
-  font-weight: 550;
-}
 
 .mini-demo {
   display: grid;
@@ -2560,7 +2535,7 @@ kbd {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .viz-stage.mode-split .graph-svg-wrap {
+  .viz-stage.mode-split .viz-pane + .viz-pane {
     border-left: none;
     padding-left: 0;
     border-top: 1px solid var(--border);
@@ -2609,7 +2584,6 @@ kbd {
   .hero,
   .conflict-actions,
   .step-cards,
-  .concepts,
   .dataset-strip {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   CirclePlus,
   Eraser,
@@ -179,21 +179,18 @@ export default function PlaygroundView({ cs, pg, navigate }) {
               </div>
             </div>
             <GraphEditor pg={pg} tool={tool} onMessage={setMessage} />
-            <AnimatePresence mode="wait">
-              {message && (
-                <motion.p
-                  key={message.text}
-                  className={`editor-message tone-${message.tone}`}
-                  role={message.tone === 'error' ? 'alert' : 'status'}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                >
-                  {message.tone === 'error' ? <TriangleAlert size={15} aria-hidden="true" /> : <Info size={15} aria-hidden="true" />}
-                  {message.text}
-                </motion.p>
-              )}
-            </AnimatePresence>
+            {message && (
+              <motion.p
+                key={message.text}
+                className={`editor-message tone-${message.tone}`}
+                role={message.tone === 'error' ? 'alert' : 'status'}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                {message.tone === 'error' ? <TriangleAlert size={15} aria-hidden="true" /> : <Info size={15} aria-hidden="true" />}
+                {message.text}
+              </motion.p>
+            )}
             <p className="muted small">
               Keyboard: Tab to a vertex, Enter to use the current tool, Delete to remove it, arrow keys to move it.
             </p>

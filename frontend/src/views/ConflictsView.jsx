@@ -60,7 +60,7 @@ export default function ConflictsView({ cs }) {
             <p className="muted small">
               Picks a random edge (u, v) and gives u the same color as v, <strong>in the browser only</strong>. The
               backend graph is not changed. The detector then has to find the conflict on its own.{' '}
-              <strong>Fix Coloring</strong> restores the algorithm's valid coloring.
+              <strong>Fix Coloring</strong> runs the coloring algorithm again on the backend and verifies the new result.
             </p>
             <ConflictDemoButtons cs={cs} />
             {!done && <p className="muted small">Available once the coloring has finished.</p>}

@@ -2,24 +2,27 @@ import { Columns2, Info, Map as MapIcon, Network } from 'lucide-react';
 import { useState } from 'react';
 import GraphSVG from '../visualization/GraphSVG';
 import IndiaMapSVG from '../visualization/IndiaMapSVG';
+import NarrationBar from './NarrationBar';
 import Segmented from './Segmented';
 import Toggle from './Toggle';
 
 const MODES = [
   { value: 'map', label: 'Map', icon: MapIcon },
   { value: 'graph', label: 'Graph', icon: Network },
-  { value: 'split', label: 'Split', icon: Columns2 },
+  { value: 'split', label: 'Map + Graph', icon: Columns2 },
 ];
 
 /**
  * Card that shows the dataset as a map, as a graph, or both side by side.
  * Every view reads the same shared state (coloring, highlight, selection,
- * conflicts), so selecting a region in one selects it in the other.
+ * conflicts), and a map region and its graph vertex share one stable ID, so
+ * selecting a region in one view selects it in the other.
  *
  * edges: 'toggle' shows a "Graph edges" switch for the map overlay;
  *        'conflicts' always overlays only the conflicting edges.
+ * narration: show the plain-language narration strip above the views.
  */
-export default function VizStage({ cs, title, edges = 'toggle', defaultMode = 'map' }) {
+export default function VizStage({ cs, title, edges = 'toggle', defaultMode = 'map', narration = false }) {
   const { graph } = cs;
   const isMap = graph.kind === 'map';
   const [mode, setMode] = useState(defaultMode);
@@ -38,7 +41,7 @@ export default function VizStage({ cs, title, edges = 'toggle', defaultMode = 'm
   };
 
   const heading =
-    title ?? (view === 'graph' ? 'Graph' : view === 'split' ? 'Map ⇄ Graph (synchronized)' : 'Map of India');
+    title ?? (view === 'graph' ? 'Graph representation' : view === 'split' ? 'Map ⇄ Graph, synchronized' : 'Map of India');
 
   return (
     <div className="card viz-card">
@@ -69,9 +72,21 @@ export default function VizStage({ cs, title, edges = 'toggle', defaultMode = 'm
         </p>
       )}
 
+      {narration && <NarrationBar cs={cs} />}
+
       <div className={`viz-stage mode-${view}`}>
-        {view !== 'graph' && <IndiaMapSVG {...shared} showEdges={edges === 'conflicts' ? 'conflicts' : showEdges} />}
-        {view !== 'map' && <GraphSVG key={graph.key} {...shared} />}
+        {view !== 'graph' && (
+          <figure className="viz-pane">
+            {view === 'split' && <figcaption>Geographical map · regions</figcaption>}
+            <IndiaMapSVG {...shared} showEdges={edges === 'conflicts' ? 'conflicts' : showEdges} />
+          </figure>
+        )}
+        {view !== 'map' && (
+          <figure className="viz-pane">
+            {view === 'split' && <figcaption>Graph representation · vertices and edges</figcaption>}
+            <GraphSVG key={graph.key} {...shared} />
+          </figure>
+        )}
       </div>
     </div>
   );

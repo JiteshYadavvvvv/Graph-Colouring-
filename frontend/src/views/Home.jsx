@@ -115,7 +115,7 @@ export default function Home({ cs, navigate }) {
                 Start Coloring
               </Button>
               <Button variant="secondary" size="lg" icon={BookOpen} onClick={() => navigate('how')}>
-                How It Works
+                Learn Graph Coloring
               </Button>
             </div>
           </div>

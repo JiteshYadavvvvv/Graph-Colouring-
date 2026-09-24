@@ -35,6 +35,7 @@ export default function ColoringControls({ coloringState }) {
   const total = totalSteps || graph.vertices.length;
   const current = done ? total : animating ? cursor.step + 1 : 0;
   const atStart = animating && cursor.step === 0 && cursor.phase === 0;
+  const playLabel = runState === 'playing' ? 'Pause' : done ? 'Replay' : 'Play';
 
   return (
     <div className="card control-bar" role="group" aria-label="Algorithm controls">
@@ -80,16 +81,20 @@ export default function ColoringControls({ coloringState }) {
             disabled={busy || !result || runState === 'idle' || atStart}
             aria-label="Previous phase"
             title="Previous phase (←)"
-          />
+          >
+            <span className="t-label">Previous</span>
+          </Button>
           <Button
             variant="secondary"
             icon={runState === 'playing' ? Pause : Play}
             className="btn-icon btn-play"
             onClick={playPause}
             disabled={busy}
-            aria-label={runState === 'playing' ? 'Pause' : done ? 'Replay' : 'Play'}
-            title={runState === 'playing' ? 'Pause (Space)' : 'Play (Space)'}
-          />
+            aria-label={playLabel}
+            title={`${playLabel} (Space)`}
+          >
+            <span className="t-label">{playLabel}</span>
+          </Button>
           <Button
             variant="ghost"
             icon={SkipForward}
@@ -98,7 +103,9 @@ export default function ColoringControls({ coloringState }) {
             disabled={busy || done}
             aria-label="Next phase"
             title="Next phase (→)"
-          />
+          >
+            <span className="t-label">Next</span>
+          </Button>
           <Button
             variant="ghost"
             icon={RotateCcw}
@@ -107,7 +114,9 @@ export default function ColoringControls({ coloringState }) {
             disabled={busy || !result?.steps.length}
             aria-label="Restart the replay"
             title="Restart: replay this run from step 1"
-          />
+          >
+            <span className="t-label">Restart</span>
+          </Button>
           <Button
             variant="ghost"
             icon={Eraser}

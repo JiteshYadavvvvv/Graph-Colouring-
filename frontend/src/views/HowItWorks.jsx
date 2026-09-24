@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Pause, Play, RotateCcw, StepBack, StepForward } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { getGraph, runColoring } from '../api/client';
@@ -7,7 +7,8 @@ import ColorChip from '../components/ColorChip';
 import LoadingState, { ErrorState } from '../components/LoadingState';
 import Pseudocode from '../components/Pseudocode';
 import { LAST_PHASE, PHASE_LABELS, PHASES, phaseDuration, speedMs } from '../utils/constants';
-import { ALGORITHM_STEPS, CONCEPTS, FACTS, FULL_PSEUDOCODE } from '../content/learning';
+import { ALGORITHM_STEPS, FACTS, FULL_PSEUDOCODE, LESSONS } from '../content/learning';
+import { narrate } from '../utils/narration';
 import { coloringAtCursor, highlightAt } from '../utils/replay';
 import GraphSVG from '../visualization/GraphSVG';
 
@@ -19,25 +20,6 @@ function describe(step) {
 
 const TICKS = PHASES.length; // one tick per phase
 const TUTORIAL_MS = speedMs('1x');
-
-function phaseMessage(step, phase, next) {
-  const colored = Object.entries(step.neighbor_colors);
-  if (phase === 0) return `Select vertex ${step.vertex} (step ${step.step}).`;
-  if (phase === 1) {
-    if (!step.neighbors.length) return `${step.vertex} has no neighbors.`;
-    const parts = step.neighbors.map((n) =>
-      step.neighbor_colors[n] ? `${n} has Color ${step.neighbor_colors[n]}` : `${n} is not colored yet`,
-    );
-    return `Inspect the neighbors of ${step.vertex}: ${parts.join(', ')}.`;
-  }
-  if (phase === 2) {
-    return colored.length
-      ? `Colors ${step.used_colors.join(', ')} are taken by neighbors, so the smallest unused color is ${step.assigned_color}.`
-      : `No neighbor is colored, so the smallest unused color is ${step.assigned_color}.`;
-  }
-  if (phase === 3) return `${step.vertex} is colored with Color ${step.assigned_color}.`;
-  return next ? `Move on to the next vertex, ${next.vertex}.` : 'No vertices are left, so the algorithm stops.';
-}
 
 /** Replays the backend's steps for the 5-vertex tutorial graph, phase by phase. */
 function MiniDemo() {
@@ -150,22 +132,19 @@ function MiniDemo() {
             );
           })}
         </ol>
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={position}
-            className="step-message"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            aria-live="polite"
-          >
+        <motion.p
+          key={position}
+          className="step-message"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          aria-live="polite"
+        >
             {active
-              ? phaseMessage(active, phase, steps[stepIndex + 1])
+              ? (({ title, detail }) => `${title} ${detail}`)(narrate(data.graph, steps, cursor))
               : position === 0
                 ? 'Press Play or Next to begin.'
                 : `Done: ${data.result.colors_used} colors, valid = ${data.result.valid}.`}
-          </motion.p>
-        </AnimatePresence>
+        </motion.p>
         <Pseudocode phase={active ? phase : null} />
       </div>
     </div>
@@ -177,34 +156,38 @@ export default function HowItWorks() {
     <div className="page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">Learn</span>
-          <h1>How Graph Coloring Works</h1>
+          <span className="eyebrow">Educational mode</span>
+          <h1>Learn Graph Coloring</h1>
           <p className="muted">
-            Graph coloring gives every vertex a color so that the two ends of every edge have different colors.
-            Coloring a map this way means no two neighboring regions look the same.
+            From a map to a graph, from a graph to a coloring: seven short lessons with examples, then the greedy
+            algorithm step by step, computed live by the backend.
           </p>
         </div>
       </header>
 
-      <section>
-        <h2 className="section-title">Key terms</h2>
-        <div className="concepts">
-          {CONCEPTS.map((c, i) => (
-            <motion.div
-              key={c.term}
-              className="card concept"
-              initial={{ opacity: 0, y: 14 }}
+      <section aria-labelledby="lessons-title">
+        <h2 id="lessons-title" className="section-title">Seven questions</h2>
+        <ol className="lessons">
+          {LESSONS.map((lesson, i) => (
+            <motion.li
+              key={lesson.id}
+              className={`card lesson ${lesson.id === 'map-to-graph' ? 'wide' : ''}`}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ delay: Math.min(i * 0.05, 0.3) }}
             >
-              <svg viewBox="0 0 60 60" width="56" height="56" aria-hidden="true">
-                {c.art}
-              </svg>
-              <h3>{c.term}</h3>
-              <p>{c.meaning}</p>
-            </motion.div>
+              <div className="lesson-text">
+                <span className="lesson-num">{i + 1}</span>
+                <h3>{lesson.question}</h3>
+                <p>{lesson.text}</p>
+                <p className="lesson-example">
+                  <strong>Example.</strong> {lesson.example}
+                </p>
+              </div>
+              <div className="lesson-art">{lesson.art}</div>
+            </motion.li>
           ))}
-        </div>
+        </ol>
       </section>
 
       <section>

@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowDown, ArrowRight, Check, CircleDashed, Cpu, Sparkles } from 'lucide-react';
 import { LAST_PHASE, PHASE_LABELS, strategyInfo } from '../utils/constants';
 import { colorFill, nameOf, pad2 } from '../utils/helpers';
@@ -106,18 +106,16 @@ export default function StepPanel({ coloringState }) {
 
       <div className="step-section">
         <div className="step-section-title">Current Vertex</div>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step.vertex}
-            className="current-vertex"
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 10 }}
-          >
-            {name(step.vertex)}
-            <span className="degree-badge">degree {step.degree}</span>
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          key={step.vertex}
+          className="current-vertex"
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {name(step.vertex)}
+          <span className="degree-badge">degree {step.degree}</span>
+        </motion.div>
         <p className="muted small selection-reason">{step.selection}</p>
       </div>
 

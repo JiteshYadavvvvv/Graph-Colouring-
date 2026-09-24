@@ -284,13 +284,12 @@ export function useColoring() {
     verify({ ...result.coloring, [vertex]: change.to });
   }, [runState, result, graph, verify]);
 
-  /** "Fix Coloring": restore the algorithm's own coloring and re-verify it. */
-  const restoreColoring = useCallback(() => {
-    if (!result) return;
-    setSimulated(null);
-    setVerification(null);
-    verify(result.coloring);
-  }, [result, verify]);
+  /**
+   * "Fix Coloring": run the coloring algorithm again on the backend (same
+   * graph, same vertex order) and verify its fresh result, which replaces
+   * the broken coloring.
+   */
+  const fixColoring = useCallback(() => run('instant', { strategy: result?.strategy }), [run, result]);
 
   const detectConflicts = useCallback(() => verify(coloring), [verify, coloring]);
 
@@ -369,7 +368,7 @@ export function useColoring() {
     detectConflicts,
     simulated,
     simulateConflict,
-    restoreColoring,
+    fixColoring,
     actionError,
     clearActionError: () => setActionError(null),
   };

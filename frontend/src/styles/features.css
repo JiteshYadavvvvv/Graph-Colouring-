@@ -249,7 +249,22 @@ a.brand {
 }
 
 .transport .btn-play {
-  width: 40px;
+  min-width: 40px;
+}
+
+.transport .t-label {
+  font-size: 0.84rem;
+}
+
+@media (max-width: 700px) {
+  /* Icons only on phones; every button keeps its aria-label and tooltip. */
+  .transport .t-label {
+    display: none;
+  }
+
+  .transport .btn > span:has(> .t-label) {
+    display: none;
+  }
 }
 
 .step-readout {
@@ -989,22 +1004,6 @@ a.brand {
 }
 
 /* ============ How it works ============ */
-.concepts {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.concept {
-  padding: 18px;
-}
-
-.concept h3 {
-  font-size: 1rem;
-}
-
-.concept p {
-  font-size: 0.86rem;
-  font-weight: 500;
-}
 
 .algo-steps {
   display: grid;
@@ -1351,9 +1350,6 @@ a.brand {
 }
 
 @media (max-width: 1280px) {
-  .concepts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 
   .compare-cards,
   .algo-steps {
@@ -1411,7 +1407,6 @@ a.brand {
 }
 
 @media (max-width: 600px) {
-  .concepts,
   .analytics-grid,
   .chromatic-compare {
     grid-template-columns: minmax(0, 1fr);
@@ -2086,4 +2081,244 @@ a.brand {
   .footer-cta:hover {
     transform: none;
   }
+}
+
+/* ============ Workspace: map ⇄ graph ============ */
+.viz-pane {
+  margin: 0;
+  min-width: 0;
+}
+
+.viz-pane figcaption {
+  margin-bottom: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.narration {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.narration-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.narration-text strong {
+  font-size: 0.96rem;
+  color: var(--text);
+}
+
+.narration-text span {
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+.narration-phase {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--secondary);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.narration-icon {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.narration-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+
+.narration-meta small {
+  font-family: var(--font);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.narration.tone-live {
+  border-color: #ddd8fb;
+  background: var(--secondary-50);
+}
+
+.narration.tone-success {
+  border-color: #c9ead8;
+  background: var(--success-50);
+}
+
+.narration.tone-success .narration-icon {
+  color: var(--success);
+}
+
+.narration.tone-danger {
+  border-color: #f3c3c5;
+  background: var(--danger-50);
+}
+
+.narration.tone-danger .narration-icon,
+.narration.tone-danger strong {
+  color: var(--danger);
+}
+
+.narration.tone-neutral .narration-icon {
+  color: var(--muted);
+}
+
+.workspace-panels {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.panel-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .workspace-panels {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .workspace-panels {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .narration {
+    flex-wrap: wrap;
+  }
+
+  .narration-meta {
+    flex-direction: row;
+    gap: 8px;
+    width: 100%;
+    padding-left: 40px;
+  }
+}
+
+/* ============ Learn Graph Coloring: lessons ============ */
+.lessons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+}
+
+.lesson.wide {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
+}
+
+.lesson-num {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: var(--primary-50);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.lesson h3 {
+  margin-bottom: 6px;
+  font-size: 1.05rem;
+}
+
+.lesson p {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.lesson .lesson-example {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.88rem;
+}
+
+.lesson-art svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.info-grid > div:nth-child(odd):last-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+  .lessons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .lesson,
+  .lesson.wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lesson-art {
+    max-width: 300px;
+  }
+}
+
+.viva-topic + .viva-topic {
+  margin-top: 8px;
+}
+
+.viva-topic-title {
+  margin: 8px 0 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary);
 }

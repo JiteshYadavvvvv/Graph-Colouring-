@@ -1,24 +1,17 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { CircleCheck, CircleDashed, LoaderCircle, TriangleAlert } from 'lucide-react';
 import { strategyInfo } from '../utils/constants';
-import { nameOf, usedColors } from '../utils/helpers';
+import { formatMs, nameOf, usedColors } from '../utils/helpers';
 import { chromaticText, coloringStatus } from '../utils/status';
 
 const STATUS_ICONS = { neutral: CircleDashed, info: LoaderCircle, success: CircleCheck, danger: TriangleAlert };
 
+/** A value that fades in when it changes (enter-only, so rapid updates never stall). */
 function Value({ children }) {
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.dd
-        key={String(children)}
-        initial={{ opacity: 0, y: 3 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -3 }}
-        transition={{ duration: 0.18 }}
-      >
-        {children}
-      </motion.dd>
-    </AnimatePresence>
+    <motion.dd key={String(children)} initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
+      {children}
+    </motion.dd>
   );
 }
 
@@ -48,6 +41,7 @@ export default function GraphInfoPanel({ cs, title = 'Graph statistics' }) {
     ['Colors used', colorsUsed],
     [<>Minimum colors <span className="nocase">(χ)</span></>, `${chromaticText(graph.chromatic)}${graph.chromatic?.exact ? '' : ' (bounds)'}`],
     ['Conflicts', verification ? verification.conflicts.length : '—'],
+    ['Execution time', result ? formatMs(result.statistics.execution_ms) : '—'],
   ];
 
   return (
