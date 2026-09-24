@@ -3,8 +3,12 @@
  * description or institution reads it from here, so they never drift apart.
  */
 export const PROJECT = {
+  // One-word name, after the chromatic number χ(G): the fewest colors a graph needs.
+  brand: 'Chroma',
   name: 'Interactive Map Coloring System',
+  tagline: 'An Interactive Graph Coloring Visualization Platform',
   subtitle: 'Graph Coloring • DSA Visualization • Educational Computing',
+  year: 2026,
   description:
     'An interactive graph-coloring platform that transforms geographical regions into mathematical graphs and visually demonstrates graph-coloring algorithms.',
 };
@@ -66,10 +70,3 @@ export const HIGHLIGHTS = [
     view: null,
   },
 ];
-
-/** Sources the project builds on, shown in the footer and the README. */
-export const CREDITS = {
-  mapData:
-    'State boundaries derived from the district GeoJSON of udit-001/india-maps-data, processed offline by tools/build_india_map.py.',
-  algorithms: 'Greedy coloring; Welsh & Powell (1967); Brélaz, DSATUR (1979).',
-};

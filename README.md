@@ -1,10 +1,20 @@
-# Interactive Map Coloring System
+<p align="center">
+  <img src="frontend/src/assets/branding/ait-logo.png" alt="Army Institute of Technology, Pune logo" height="96">
+</p>
 
-**Graph Coloring • DSA Visualization • Educational Computing**
+<p align="center"><b>ARMY INSTITUTE OF TECHNOLOGY, PUNE</b><br>Department of Computer Engineering</p>
 
-*Department of Computer Engineering, Army Institute of Technology, Pune*
+# Chroma
+
+### Interactive Map Coloring System
+
+**An Interactive Graph Coloring Visualization Platform**
+
+*Graph Coloring • DSA Visualization • Educational Computing*
 
 An interactive graph-coloring platform that transforms geographical regions into mathematical graphs and visually demonstrates graph-coloring algorithms.
+
+*Chroma* is named after the **chromatic number** χ(G), the fewest colors a graph can be colored with.
 
 Map coloring and graph coloring are classical problems in graph theory; this project is an educational implementation of them. The states of India become the **vertices** of a graph and their shared borders become **edges**. A hand-written **Greedy Graph Coloring** algorithm, running in Python on a FastAPI backend, colors the graph and records every decision it makes. The React frontend replays those recorded decisions on a real map of India and on a node-link graph, one phase at a time, so you watch the algorithm's actual reasoning rather than a scripted animation.
 
@@ -41,6 +51,7 @@ Color   → Label assigned to a vertex (1, 2, 3, …)
 19. [Viva Questions](#19-viva-questions)
 20. [Future Scope](#20-future-scope)
 21. [References and Credits](#21-references-and-credits)
+22. [Project Team](#22-project-team)
 
 ---
 
@@ -87,7 +98,10 @@ Applied to a political map, the question becomes: *how can the states of India b
 
 | Area | What it does |
 |---|---|
-| **Header** | Title, live indicators (● Backend connected, ● Dataset loaded, ● Coloring valid) derived from real state, dataset selector, **Export Report**, **Viva Mode** and **Reset Experiment** buttons |
+| **Institutional header** | Home opens with the AIT logo, *Army Institute of Technology, Pune*, *Department of Computer Engineering*, the project name and its supporting line |
+| **Project Team** | A page (sidebar → About) with a card per team member: photo, name, department and institution |
+| **Header** | AIT logo and institute name, project title, dataset selector, **Export Report**, **Viva Mode** and **Reset Experiment** buttons |
+| **Footer** | On the Home and Project Team pages: the project's name and purpose, where it was built, links to the main sections, a large *CHROMA* wordmark, and © 2026 |
 | **Datasets** | Gallery of all datasets with a live preview, graph type, characteristics, and computed V, E, Δ and χ |
 | **Map view** | Real India state/UT boundaries (local SVG), hover tooltips, click/keyboard selection with neighbor highlighting and the selected region's edges, optional overlay of all graph edges, **Show vertex degrees**, and a **Map / Graph / Split** switch that keeps both views in sync |
 | **Graph view** | Draggable node-link graph, degree badges, neighbor highlighting, vertex details card, adjacency list as a tree or a table |
@@ -413,16 +427,20 @@ frontend/src/
 ├── components/              ColoringControls (playback bar), StepPanel, GraphInfoPanel,
 │                            AlgorithmTimeline, Pseudocode, Legend, VertexCard, VizStage,
 │                            ConflictBanner, ConflictDemoButtons, ColorDistribution,
-│                            ChromaticCard, ExportMenu, ExportPanel, StatusIndicators, …
+│                            ChromaticCard, ExportMenu, ExportPanel, InstitutionalHeader,
+│                            InstituteLogo, TeamCard, SiteFooter (Home and Team pages), …
 ├── views/                   Home, Datasets, Map, Graph, Playground, Results, Conflicts,
-│                            Statistics, Compare, HowItWorks, Applications, Viva
-├── content/                 identity (name, subtitle, institution, credits), learning material,
-│                            viva questions and quiz, applications, Playground examples
-├── assets/branding/         optional institute logo (see the README in that folder)
+│                            Statistics, Compare, HowItWorks, Applications, Viva, Team
+├── content/                 identity (name, tagline, institution, credits), team, learning
+│                            material, viva questions and quiz, applications, Playground examples
+├── assets/branding/         ait-logo.png, the official institute logo (see the README there)
 ├── data/indiaGeometry.js    generated state boundaries (SVG paths, label anchors)
 ├── utils/                   constants (palette, phases, speeds), replay (cursor → coloring and
 │                            highlight), status summaries, helpers, export builders
 └── styles/                  variables.css (tokens), globals.css, features.css, animations.css
+
+frontend/public/team/        team photos (jitesh.jpg, jatin.jpg, harsh.jpg, neelendu.jpg);
+                             replace a file to update a portrait, no code change needed
 ```
 
 * **One state hook.** `useColoring` owns the graph, the backend result and the playback cursor `{step, phase}`. A single `setTimeout` drives Auto Play; pausing, resetting or unmounting clears it. Previous/Next move the cursor, and the visible coloring is derived from it, so stepping back is exact.
@@ -498,10 +516,11 @@ The frontend and backend are deployed as **two separate Vercel projects**. Deplo
 
 | | |
 |---|---|
-| ![Home](docs/screenshots/home.png) **Home**: title, live status indicators, entry points | ![Datasets](docs/screenshots/datasets.png) **Datasets**: computed V, E, Δ and χ for every graph |
+| ![Home](docs/screenshots/home.png) **Home**: institutional header and entry points | ![Datasets](docs/screenshots/datasets.png) **Datasets**: computed V, E, Δ and χ for every graph |
 | ![Step by step](docs/screenshots/step-by-step.png) **Step-by-step replay**: step 18, Maharashtra; neighbors block colors 1–3, so it takes color 4 (map and graph in sync) | ![Conflict](docs/screenshots/conflict.png) **Conflict detection**: a simulated conflict found by the backend, shown with outline, ⚠ icon and text |
 | ![Results](docs/screenshots/results.png) **Results**: analytics, color distribution, χ comparison, export | ![Compare](docs/screenshots/compare.png) **Compare**: on the crown graph DSATUR needs 2 colors, greedy and Welsh–Powell 4 |
 | ![Playground](docs/screenshots/playground.png) **Graph Playground**: the exam-timetable example | ![Viva](docs/screenshots/viva.png) **Viva Mode**: questions with answers and a quiz |
+| ![Project Team](docs/screenshots/team.png) **Project Team**: the four team members | |
 
 ## 19. Viva Questions
 
@@ -553,4 +572,19 @@ This project implements and visualizes well-known results; it does not claim the
 * **Libraries.** React, Vite, Framer Motion and Lucide icons (frontend); FastAPI, Pydantic and Uvicorn (backend).
 
 Developed as an academic project in the Department of Computer Engineering, Army Institute of Technology, Pune.
+
+## 22. Project Team
+
+Department of Computer Engineering, Army Institute of Technology, Pune.
+
+| Member | Department | Institution |
+|---|---|---|
+| Jitesh Yadav | Computer Engineering | Army Institute of Technology, Pune |
+| Jatin | Computer Engineering | Army Institute of Technology, Pune |
+| Harsh Pandey | Computer Engineering | Army Institute of Technology, Pune |
+| Neelendu | Computer Engineering | Army Institute of Technology, Pune |
+
+The portraits shown in the app are placeholders until real photos are added to `frontend/public/team/` (same file names; see the README in that folder). The member list lives in `frontend/src/content/team.js`.
+
+© 2026 Chroma · Interactive Map Coloring System
 

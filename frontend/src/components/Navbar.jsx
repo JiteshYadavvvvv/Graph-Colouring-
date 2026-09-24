@@ -2,8 +2,8 @@ import { GraduationCap, RotateCcw } from 'lucide-react';
 import { INSTITUTION, PROJECT } from '../content/identity';
 import { CUSTOM_DATASET } from '../utils/constants';
 import Button from './Button';
+import InstituteLogo, { HAS_INSTITUTE_LOGO } from './InstituteLogo';
 import ExportMenu from './ExportMenu';
-import StatusIndicators from './StatusIndicators';
 
 function Logo() {
   return (
@@ -24,20 +24,21 @@ export default function Navbar({ cs, onNavigate }) {
       <a
         className="brand"
         href="#home"
+        aria-label={`${PROJECT.brand}, ${PROJECT.name}, ${INSTITUTION.name}: home`}
         onClick={(e) => {
           e.preventDefault();
           onNavigate('home');
         }}
       >
-        <Logo />
+        {HAS_INSTITUTE_LOGO ? <InstituteLogo height={40} decorative className="brand-logo" /> : <Logo />}
         <div className="brand-text">
           <div className="brand-institute">{INSTITUTION.name}</div>
-          <div className="brand-title">{PROJECT.name}</div>
-          <div className="brand-sub">{PROJECT.subtitle}</div>
+          <div className="brand-title">
+            <span className="brand-name">{PROJECT.brand}</span>
+            <span className="brand-full">{PROJECT.name}</span>
+          </div>
         </div>
       </a>
-
-      <StatusIndicators cs={cs} className="navbar-status" compact />
 
       <div className="navbar-actions">
         <label className="select-field">

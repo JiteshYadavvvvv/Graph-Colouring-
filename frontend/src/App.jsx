@@ -6,7 +6,6 @@ import Button from './components/Button';
 import LoadingState, { EmptyState, ErrorState } from './components/LoadingState';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
-import SiteFooter from './components/SiteFooter';
 import { useColoring } from './hooks/useColoring';
 import { usePlayground } from './hooks/usePlayground';
 import { DEFAULT_DATASET, VIEWS } from './utils/constants';
@@ -21,6 +20,7 @@ import MapView from './views/MapView';
 import PlaygroundView from './views/PlaygroundView';
 import ResultsView from './views/ResultsView';
 import StatisticsView from './views/StatisticsView';
+import TeamView from './views/TeamView';
 import VivaView from './views/VivaView';
 
 const VIEW_COMPONENTS = {
@@ -36,10 +36,11 @@ const VIEW_COMPONENTS = {
   how: HowItWorks,
   applications: ApplicationsView,
   viva: VivaView,
+  team: TeamView,
 };
 
 // Pages that work without a loaded graph (they don't depend on the backend).
-const STANDALONE = new Set(['how', 'applications', 'playground', 'viva']);
+const STANDALONE = new Set(['how', 'applications', 'playground', 'viva', 'team']);
 
 /** Troubleshooting hint for developers; production shows none. */
 function devHint(error) {
@@ -169,7 +170,6 @@ export default function App() {
                 {content}
               </motion.div>
             </AnimatePresence>
-            <SiteFooter />
           </main>
         </div>
       </div>

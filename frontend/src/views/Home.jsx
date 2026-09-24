@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, BookOpen, Check, GitBranch, Palette, Play, ShieldCheck } from 'lucide-react';
 import Button from '../components/Button';
-import InstituteLogo from '../components/InstituteLogo';
-import StatusIndicators from '../components/StatusIndicators';
-import { HIGHLIGHTS, INSTITUTION, PROJECT } from '../content/identity';
+import InstitutionalHeader from '../components/InstitutionalHeader';
+import SiteFooter from '../components/SiteFooter';
+import { HIGHLIGHTS, PROJECT } from '../content/identity';
 import { PALETTE } from '../utils/constants';
 
 const STEPS = [
@@ -93,121 +93,115 @@ export default function Home({ cs, navigate }) {
   };
 
   return (
-    <div className="page">
-      <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-text">
-          <motion.div className="institution" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <InstituteLogo height={52} />
-            <div>
-              <div className="institution-name">{INSTITUTION.name}</div>
-              <div className="institution-dept">{INSTITUTION.department}</div>
+    <>
+      <div className="page">
+        <InstitutionalHeader />
+
+        <section className="hero" aria-label="Introduction">
+          <div className="hero-text">
+            <motion.p className="hero-tagline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+              {PROJECT.subtitle}
+            </motion.p>
+            <motion.p className="hero-desc" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+              {PROJECT.description}
+            </motion.p>
+            <motion.p className="hero-note" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+              Every state of India becomes a <strong>vertex</strong> and every shared border an <strong>edge</strong>. A
+              greedy coloring algorithm, running in Python on the backend, gives each state the smallest color its
+              neighbors are not using, and every one of its decisions can be replayed step by step.
+            </motion.p>
+            <div className="hero-actions">
+              <Button icon={Play} size="lg" onClick={startColoring}>
+                Start Coloring
+              </Button>
+              <Button variant="secondary" size="lg" icon={BookOpen} onClick={() => navigate('how')}>
+                How It Works
+              </Button>
             </div>
-          </motion.div>
-          <motion.h1 id="hero-title" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            {PROJECT.name}
-          </motion.h1>
-          <motion.p className="hero-tagline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            {PROJECT.subtitle}
-          </motion.p>
-          <motion.p className="hero-desc" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-            {PROJECT.description}
-          </motion.p>
-          <motion.p className="hero-note" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-            Every state of India becomes a <strong>vertex</strong> and every shared border an <strong>edge</strong>. A
-            greedy coloring algorithm, running in Python on the backend, gives each state the smallest color its
-            neighbors are not using, and every one of its decisions can be replayed step by step.
-          </motion.p>
-          <div className="hero-actions">
-            <Button icon={Play} size="lg" onClick={startColoring}>
-              Start Coloring
-            </Button>
-            <Button variant="secondary" size="lg" icon={BookOpen} onClick={() => navigate('how')}>
-              How It Works
-            </Button>
           </div>
-          <StatusIndicators cs={cs} className="hero-status" />
-        </div>
-        <div className="hero-visual">
-          <HeroArt />
-          <div className="hero-caption">
-            <span>Map regions</span>
-            <ArrowRight size={14} aria-hidden="true" />
-            <span>Graph vertices</span>
-          </div>
-        </div>
-      </section>
-
-      <section className="step-cards">
-        {STEPS.map(({ n, icon: Icon, title, text }, i) => (
-          <motion.article
-            key={n}
-            className="card step-card"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 + i * 0.1 }}
-          >
-            <div className="step-card-top">
-              <span className="step-num">{n}</span>
-              <Icon size={20} aria-hidden="true" />
+          <div className="hero-visual">
+            <HeroArt />
+            <div className="hero-caption">
+              <span>Map regions</span>
+              <ArrowRight size={14} aria-hidden="true" />
+              <span>Graph vertices</span>
             </div>
-            <h3>{title}</h3>
-            <p>{text}</p>
-          </motion.article>
-        ))}
-      </section>
+          </div>
+        </section>
 
-      <section className="card highlights" aria-labelledby="highlights-title">
-        <div className="card-title-row wrap">
-          <h2 id="highlights-title" className="section-title">What this project implements</h2>
-          <span className="muted small">
-            Map coloring and graph coloring are classical problems in graph theory. This project is an educational
-            implementation that brings them together in one interactive system.
-          </span>
-        </div>
-        <ul className="highlight-list">
-          {HIGHLIGHTS.map((item) => (
-            <li key={item.title}>
-              <Check size={16} className="highlight-mark" aria-hidden="true" />
-              <div>
-                {item.view ? (
-                  <button type="button" className="link-btn highlight-link" onClick={() => navigate(item.view)}>
-                    {item.title}
-                    <ArrowRight size={13} aria-hidden="true" />
-                  </button>
-                ) : (
-                  <strong>{item.title}</strong>
-                )}
-                <p className="muted small">{item.text}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="card dataset-strip">
-        <div>
-          <span className="eyebrow">Available datasets</span>
-          <p className="muted small">Every dataset runs through the same algorithm on the backend.</p>
-        </div>
-        <div className="dataset-chips">
-          {datasets.map((d) => (
-            <button
-              key={d.key}
-              className={`dataset-chip ${graph.key === d.key ? 'active' : ''}`}
-              onClick={() => cs.changeDataset(d.key)}
-              aria-pressed={graph.key === d.key}
+        <section className="step-cards">
+          {STEPS.map(({ n, icon: Icon, title, text }, i) => (
+            <motion.article
+              key={n}
+              className="card step-card"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 + i * 0.1 }}
             >
-              <strong>{d.name}</strong>
-              <span>
-                V {d.vertices} · E {d.edges}
-              </span>
-            </button>
+              <div className="step-card-top">
+                <span className="step-num">{n}</span>
+                <Icon size={20} aria-hidden="true" />
+              </div>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </motion.article>
           ))}
-          <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate('datasets')}>
-            All datasets
-          </Button>
-        </div>
-      </section>
-    </div>
+        </section>
+
+        <section className="card highlights" aria-labelledby="highlights-title">
+          <div className="card-title-row wrap">
+            <h2 id="highlights-title" className="section-title">What this project implements</h2>
+            <span className="muted small">
+              Map coloring and graph coloring are classical problems in graph theory. This project is an educational
+              implementation that brings them together in one interactive system.
+            </span>
+          </div>
+          <ul className="highlight-list">
+            {HIGHLIGHTS.map((item) => (
+              <li key={item.title}>
+                <Check size={16} className="highlight-mark" aria-hidden="true" />
+                <div>
+                  {item.view ? (
+                    <button type="button" className="link-btn highlight-link" onClick={() => navigate(item.view)}>
+                      {item.title}
+                      <ArrowRight size={13} aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <strong>{item.title}</strong>
+                  )}
+                  <p className="muted small">{item.text}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="card dataset-strip">
+          <div>
+            <span className="eyebrow">Available datasets</span>
+            <p className="muted small">Every dataset runs through the same algorithm on the backend.</p>
+          </div>
+          <div className="dataset-chips">
+            {datasets.map((d) => (
+              <button
+                key={d.key}
+                className={`dataset-chip ${graph.key === d.key ? 'active' : ''}`}
+                onClick={() => cs.changeDataset(d.key)}
+                aria-pressed={graph.key === d.key}
+              >
+                <strong>{d.name}</strong>
+                <span>
+                  V {d.vertices} · E {d.edges}
+                </span>
+              </button>
+            ))}
+            <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate('datasets')}>
+              All datasets
+            </Button>
+          </div>
+        </section>
+      </div>
+      <SiteFooter onNavigate={navigate} current="home" />
+    </>
   );
 }

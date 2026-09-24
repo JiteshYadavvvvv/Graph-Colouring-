@@ -11,15 +11,20 @@ const LOGO_URL = Object.values(files)[0] ?? null;
 
 export const HAS_INSTITUTE_LOGO = Boolean(LOGO_URL);
 
-/** The institute logo at a fixed height; its width follows its own aspect ratio. */
-export default function InstituteLogo({ height = 48, className = '' }) {
+/**
+ * The institute logo at a fixed height; its width follows its own aspect
+ * ratio. The height is passed as a CSS variable so a stylesheet can adapt it
+ * (e.g. on phones) without ever distorting the image.
+ */
+export default function InstituteLogo({ height = 48, className = '', decorative = false }) {
   if (!LOGO_URL) return null;
   return (
     <img
       src={LOGO_URL}
-      alt={`${INSTITUTION.name} logo`}
+      // Decorative when the institution's name is written right next to it.
+      alt={decorative ? '' : `${INSTITUTION.name} logo`}
       className={`institute-logo ${className}`}
-      style={{ height, width: 'auto' }}
+      style={{ '--logo-h': `${height}px` }}
       decoding="async"
     />
   );

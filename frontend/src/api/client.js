@@ -148,8 +148,6 @@ function sourceBody(source) {
 // at most once. Failed requests are not cached, so Retry really retries.
 const graphCache = new Map();
 
-export const getHealth = () => request('health');
-
 export const getDatasets = () => request('datasets', { shape: Array.isArray });
 
 export function getGraph(dataset) {

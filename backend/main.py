@@ -39,7 +39,7 @@ from models.schemas import (
 )
 
 app = FastAPI(
-    title="Interactive Map Coloring System API",
+    title="Chroma API · Interactive Map Coloring System",
     description=(
         "Graph Coloring • DSA Visualization • Educational Computing. "
         "The coloring engine of the Interactive Map Coloring System: graph datasets, "

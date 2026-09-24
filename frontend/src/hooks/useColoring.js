@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { analyzeGraph, checkConflicts, getDatasets, getGraph, getHealth, runColoring } from '../api/client';
+import { analyzeGraph, checkConflicts, getDatasets, getGraph, runColoring } from '../api/client';
 import {
   CUSTOM_DATASET,
   DEFAULT_DATASET,
@@ -25,8 +25,6 @@ export function useColoring() {
   const [graph, setGraph] = useState(null);
   const [load, setLoad] = useState({ status: 'loading', error: null });
   const [reloadToken, setReloadToken] = useState(0);
-  // Result of GET /api/health: 'checking' | 'online' | 'offline' | 'error'
-  const [engine, setEngine] = useState('checking');
   // The last graph built in the Playground, as analyzed by the backend.
   const customGraph = useRef(null);
 
@@ -45,19 +43,6 @@ export function useColoring() {
 
   // Incremented on every reset, so responses to outdated requests are ignored.
   const generation = useRef(0);
-
-  // ---- Health check (on start and on every retry) ----
-  useEffect(() => {
-    let cancelled = false;
-    setEngine('checking');
-    getHealth()
-      .then((health) => !cancelled && setEngine(health?.status === 'ok' ? 'online' : 'error'))
-      // A missing health route means the configured URL isn't the engine at all.
-      .catch((error) => !cancelled && setEngine(['network', 'not_found'].includes(error.kind) ? 'offline' : 'error'));
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadToken]);
 
   // ---- Load the dataset list and the selected graph from the backend ----
   useEffect(() => {
@@ -344,7 +329,6 @@ export function useColoring() {
     datasetKey,
     graph,
     load,
-    engine,
     retryLoad,
     changeDataset,
     loadCustomGraph,

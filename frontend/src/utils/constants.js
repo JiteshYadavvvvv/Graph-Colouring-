@@ -11,6 +11,7 @@ import {
   Scale,
   ShieldAlert,
   Table2,
+  Users,
 } from 'lucide-react';
 
 /**
@@ -55,6 +56,7 @@ export const VIEWS = [
   { id: 'how', label: 'How It Works', icon: BookOpen },
   { id: 'applications', label: 'Applications', icon: Lightbulb },
   { id: 'viva', label: 'Viva Mode', icon: GraduationCap },
+  { id: 'team', label: 'Project Team', icon: Users },
 ];
 
 /** Sidebar sections. */
@@ -63,6 +65,7 @@ export const NAV_GROUPS = [
   { label: 'Visualize', views: ['map', 'graph', 'playground'] },
   { label: 'Analyze', views: ['results', 'conflicts', 'stats', 'compare'] },
   { label: 'Learn', views: ['how', 'applications', 'viva'] },
+  { label: 'About', views: ['team'] },
 ];
 
 /**

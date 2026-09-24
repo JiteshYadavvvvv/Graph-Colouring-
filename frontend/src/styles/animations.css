@@ -4,16 +4,6 @@
   }
 }
 
-@keyframes pulse-dot {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(24, 183, 160, 0.55);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(24, 183, 160, 0);
-  }
-}
-
 @keyframes shimmer {
   from {
     background-position: -200% 0;

@@ -1,17 +1,22 @@
 # Institute branding
 
-To show the Army Institute of Technology, Pune logo in the app, place the
-official logo file in this folder under one of these names:
+`ait-logo.png` is the official logo of the Army Institute of Technology, Pune,
+as provided for this project (175 × 150 px, white background). It is used,
+unmodified, in:
 
-    ait-logo.svg   (preferred)
-    ait-logo.png   (transparent background, at least 256 px tall)
-    ait-logo.webp / ait-logo.jpg
+* the app header (next to the institute and project name),
+* the institutional header on the Home page,
+* the footer of the Home page (a white band, matching the logo's background).
 
-The app picks it up automatically at build time (`components/InstituteLogo.jsx`).
-It is shown on the Home page and in the footer at a fixed height with its
-original aspect ratio and colors: it is never stretched, recolored or filtered.
+`components/InstituteLogo.jsx` loads whichever of these files is present:
 
-Without a logo file, the institution is shown by name only.
+    ait-logo.svg   (preferred, if the institute provides a vector version)
+    ait-logo.png / ait-logo.webp / ait-logo.jpg
 
-Use the official artwork only, and check the institute's guidelines before a
-public release.
+The logo is always shown at a fixed height with its original aspect ratio and
+colors: it is never stretched, recolored or filtered. A higher-resolution
+version (SVG, or a PNG at least 300 px tall) would look sharper on high-DPI
+screens; drop it in with the same name to replace the current file.
+
+If no logo file is present, the Home header shows a labeled placeholder and
+the institution is identified by name only.
