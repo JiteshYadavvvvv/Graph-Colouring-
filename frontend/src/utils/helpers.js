@@ -19,6 +19,14 @@ export function colorName(k) {
   return k <= PALETTE.length ? PALETTE[k - 1].name : `Hue ${k}`;
 }
 
+/**
+ * Display name of a vertex. Vertices are identified by stable IDs (e.g.
+ * "IN-MH"); names ("Maharashtra") are only ever used for display.
+ */
+export function nameOf(graph, vertex) {
+  return graph?.names?.[vertex] ?? vertex;
+}
+
 /** Stable key for an undirected edge. */
 export function edgeKey(u, v) {
   return u < v ? `${u}|${v}` : `${v}|${u}`;
@@ -44,8 +52,21 @@ export function usedColors(coloring) {
   return [...new Set(Object.values(coloring))].sort((a, b) => a - b);
 }
 
+/** Color classes: [{ color, members: [vertex, ...] }], members in `order`. */
+export function colorClasses(coloring, order) {
+  return usedColors(coloring).map((color) => ({
+    color,
+    members: order.filter((v) => coloring[v] === color),
+  }));
+}
+
 export function pad2(n) {
   return String(n).padStart(2, '0');
+}
+
+/** "3 vertices", "1 vertex". */
+export function plural(n, singular, pluralForm = `${singular}s`) {
+  return `${n} ${n === 1 ? singular : pluralForm}`;
 }
 
 /** Bounding box of layout points, padded, as an SVG viewBox. */
@@ -62,4 +83,11 @@ export function layoutViewBox(layout, padding) {
     w: Math.max(...xs) + padding - minX,
     h: Math.max(...ys) + padding - minY,
   };
+}
+
+/** Formats a backend time in ms: 0.0123 → "12.3 µs", 1.5 → "1.50 ms". */
+export function formatMs(ms) {
+  if (ms === null || ms === undefined) return '—';
+  if (ms < 1) return `${(ms * 1000).toFixed(1)} µs`;
+  return `${ms.toFixed(2)} ms`;
 }

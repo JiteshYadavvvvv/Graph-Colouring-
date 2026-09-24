@@ -91,10 +91,6 @@ svg :focus-visible {
   white-space: nowrap;
 }
 
-.error-text {
-  color: var(--danger);
-}
-
 .eyebrow {
   display: inline-block;
   font-size: 0.72rem;
@@ -181,47 +177,6 @@ body::before {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.algo-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
-
-.algo-indicator .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--muted);
-}
-
-.algo-indicator.state-playing .dot,
-.algo-indicator.state-requesting .dot {
-  background: var(--accent);
-  animation: pulse-dot 1.4s infinite;
-}
-
-.algo-indicator.state-paused .dot {
-  background: #e5a100;
-}
-
-.algo-indicator.state-done .dot {
-  background: var(--success);
-}
-
-.algo-name {
-  font-weight: 700;
-}
-
-.algo-meta {
-  color: var(--muted);
 }
 
 .select-field {
@@ -326,31 +281,6 @@ body::before {
   flex-direction: column;
   gap: 10px;
   font-size: 0.8rem;
-}
-
-.engine-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--muted);
-}
-
-.engine-status .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.dot.ok {
-  background: var(--success);
-}
-
-.dot.pending {
-  background: var(--warning);
-}
-
-.dot.down {
-  background: var(--danger);
 }
 
 .sidebar-dataset {
@@ -850,18 +780,8 @@ body::before {
   padding: 12px 14px;
 }
 
-.control-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .btn-run {
   min-width: 190px;
-}
-
-.btn-pause {
-  min-width: 104px;
 }
 
 .btn.btn-icon {
@@ -903,15 +823,6 @@ kbd {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.setting-label {
-  font-size: 0.72rem;
-  font-weight: 650;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
 }
 
 .select-wrap select {
@@ -996,7 +907,6 @@ kbd {
 .action-card,
 .concept,
 .fact,
-.dataset-option,
 .completion-stats > div {
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
@@ -1004,14 +914,9 @@ kbd {
 .action-card:hover,
 .concept:hover,
 .fact:hover,
-.dataset-option:hover,
 .completion-stats > div:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-}
-
-.dataset-option:active {
-  transform: translateY(0) scale(0.99);
 }
 
 .toggle:hover .toggle-track {
@@ -2010,13 +1915,6 @@ kbd {
   margin-top: -4px;
 }
 
-.vertex-meta {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 6px 0 14px;
-}
-
 .vertex-neighbors {
   list-style: none;
   margin: 0;
@@ -2154,40 +2052,6 @@ kbd {
   align-items: center;
 }
 
-.dataset-options {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.dataset-option {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  text-align: left;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: #fff;
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.dataset-option span:nth-child(2) {
-  font-size: 0.82rem;
-  color: var(--primary);
-  font-weight: 600;
-}
-
-.dataset-option:hover {
-  border-color: var(--border-strong);
-}
-
-.dataset-option.active {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(49, 87, 213, 0.12);
-}
-
 /* ============ Results ============ */
 .completion {
   display: grid;
@@ -2307,29 +2171,9 @@ kbd {
   color: var(--muted);
 }
 
-.results-note {
-  margin: -8px 0 0;
-}
-
 .preview-card .india-map,
 .preview-card .graph-svg {
   max-height: 380px;
-}
-
-.class-list {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 0.86rem;
-}
-
-.class-list li {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
 }
 
 /* ============ Conflicts ============ */
@@ -2738,10 +2582,6 @@ kbd {
   .measured-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .algo-meta {
-    display: none;
-  }
 }
 
 @media (max-width: 900px) {
@@ -2810,10 +2650,6 @@ kbd {
   .navbar {
     padding: 0 14px;
   }
-
-  .algo-indicator {
-    display: none;
-  }
 }
 
 @media (max-width: 600px) {
@@ -2836,8 +2672,7 @@ kbd {
     min-width: 0;
   }
 
-  .brand-sub,
-  .hide-sm {
+  .brand-sub {
     display: none;
   }
 

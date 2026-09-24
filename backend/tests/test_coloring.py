@@ -63,7 +63,7 @@ class GreedyColoringTests(unittest.TestCase):
         for key, dataset in DATASETS.items():
             graph = dataset["adjacency"]
             validate_graph(graph)
-            for strategy in ("natural", "largest_first"):
+            for strategy in ("natural", "largest_first", "dsatur"):
                 result = greedy_coloring_with_steps(graph, strategy)
                 self.assertTrue(is_valid_coloring(graph, result["coloring"]), key)
                 self.assertEqual(len(result["steps"]), len(graph))
@@ -86,21 +86,30 @@ class GreedyColoringTests(unittest.TestCase):
         result = greedy_coloring_with_steps(DATASETS["mini"]["adjacency"])
         self.assertEqual(result["coloring"], {"A": 1, "B": 2, "C": 2, "D": 1, "E": 3})
 
-    def test_every_vertex_has_label_and_layout(self):
+    def test_every_vertex_has_label_name_and_layout(self):
         for key, dataset in DATASETS.items():
             vertices = set(dataset["adjacency"])
             self.assertEqual(set(dataset["labels"]), vertices, key)
+            self.assertEqual(set(dataset["names"]), vertices, key)
             self.assertEqual(set(dataset["layout"]), vertices, key)
-            # Labels double as stable IDs for the map geometry, so they must be unique.
             self.assertEqual(len(set(dataset["labels"].values())), len(vertices), key)
+            self.assertEqual(len(set(dataset["names"].values())), len(vertices), key)
+
+    def test_india_uses_stable_ids(self):
+        dataset = DATASETS["india"]
+        for vertex, code in dataset["labels"].items():
+            self.assertEqual(vertex, f"IN-{code}")
+        self.assertEqual(dataset["names"]["IN-MH"], "Maharashtra")
 
     def test_india_known_borders(self):
         graph = DATASETS["india"]["adjacency"]
         self.assertEqual(len(graph), 31)
-        self.assertIn("Goa", graph["Maharashtra"])
-        self.assertIn("Sikkim", graph["West Bengal"])
-        self.assertEqual(graph["Meghalaya"], ["Assam"])
-        self.assertNotIn("Kerala", graph["Andhra Pradesh"])
+        self.assertIn("IN-GA", graph["IN-MH"])   # Goa – Maharashtra
+        self.assertIn("IN-SK", graph["IN-WB"])   # Sikkim – West Bengal
+        self.assertEqual(graph["IN-ML"], ["IN-AS"])  # Meghalaya borders only Assam
+        self.assertNotIn("IN-KL", graph["IN-AP"])  # Kerala and Andhra Pradesh do not touch
+        self.assertIn("IN-UP", graph["IN-HP"])   # the short Himachal – Uttar Pradesh border
+        self.assertNotIn("IN-HR", graph["IN-UK"])  # Uttarakhand – Haryana is only a point contact
 
     def test_india_uses_at_most_four_colors(self):
         # India is a planar map, so four colors always suffice (Four Color Theorem).

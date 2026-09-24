@@ -3,6 +3,7 @@ import { useState } from 'react';
 import GraphSVG from '../visualization/GraphSVG';
 import IndiaMapSVG from '../visualization/IndiaMapSVG';
 import Segmented from './Segmented';
+import Toggle from './Toggle';
 
 const MODES = [
   { value: 'map', label: 'Map', icon: MapIcon },
@@ -33,6 +34,7 @@ export default function VizStage({ cs, title, edges = 'toggle', defaultMode = 'm
     onSelect: cs.setSelected,
     conflicts: cs.conflicts,
     phaseMs: cs.phaseMs,
+    showDegrees: cs.showDegrees,
   };
 
   const heading =
@@ -47,18 +49,17 @@ export default function VizStage({ cs, title, edges = 'toggle', defaultMode = 'm
             {graph.statistics.vertices} vertices · {graph.statistics.edges} edges
           </span>
         </div>
-        {isMap && (
-          <div className="viz-tools">
-            {edges === 'toggle' && view !== 'graph' && (
-              <label className="toggle">
-                <input type="checkbox" checked={showEdges} onChange={(e) => setShowEdges(e.target.checked)} />
-                <span className="toggle-track" aria-hidden="true" />
-                Graph edges
-              </label>
-            )}
-            <Segmented ariaLabel="Visualization" options={MODES} value={mode} onChange={setMode} size="sm" />
-          </div>
-        )}
+        <div className="viz-tools">
+          <Toggle checked={cs.showDegrees} onChange={cs.setShowDegrees}>
+            Show vertex degrees
+          </Toggle>
+          {isMap && edges === 'toggle' && view !== 'graph' && (
+            <Toggle checked={showEdges} onChange={setShowEdges}>
+              Graph edges
+            </Toggle>
+          )}
+          {isMap && <Segmented ariaLabel="Visualization" options={MODES} value={mode} onChange={setMode} size="sm" />}
+        </div>
       </div>
 
       {!isMap && (

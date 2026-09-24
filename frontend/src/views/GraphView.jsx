@@ -1,24 +1,23 @@
-import { Hash, Network, Palette, ShieldAlert } from 'lucide-react';
 import AdjacencyTable from '../components/AdjacencyTable';
 import AlgorithmTimeline from '../components/AlgorithmTimeline';
 import ColoringControls, { ShortcutHint } from '../components/ColoringControls';
-import { useShortcuts } from '../hooks/useShortcuts';
+import GraphInfoPanel from '../components/GraphInfoPanel';
 import Legend from '../components/Legend';
-import StatCard from '../components/StatCard';
 import StepPanel from '../components/StepPanel';
+import Toggle from '../components/Toggle';
 import VertexCard from '../components/VertexCard';
-import { usedColors } from '../utils/helpers';
+import { useShortcuts } from '../hooks/useShortcuts';
 import GraphSVG from '../visualization/GraphSVG';
-import { legendPulse } from './MapView';
+import { InlineConflicts, legendPulse } from './MapView';
 
 export default function GraphView({ cs }) {
   useShortcuts(cs);
-  const { graph, coloring, verification } = cs;
+  const { graph, coloring } = cs;
   const showVertexCard = cs.selected && !cs.animating;
 
   return (
     <div className="page">
-      <header className="page-header">
+      <header className="page-header compact">
         <div>
           <span className="eyebrow">Graph View</span>
           <h1>{graph.name} as a Graph</h1>
@@ -27,28 +26,24 @@ export default function GraphView({ cs }) {
         <ShortcutHint />
       </header>
 
-      <div className="stat-grid">
-        <StatCard icon={Network} label="Vertices" value={graph.statistics.vertices} hint="Regions" />
-        <StatCard icon={Hash} label="Edges" value={graph.statistics.edges} hint="Shared borders" tone="secondary" delay={0.05} />
-        <StatCard icon={Palette} label="Current Colors" value={usedColors(coloring).length} hint="Distinct colors on screen" tone="accent" delay={0.1} />
-        <StatCard
-          icon={ShieldAlert}
-          label="Conflicts"
-          value={verification ? verification.conflicts.length : '—'}
-          hint={verification ? (verification.valid ? 'Verified valid' : 'See Conflicts page') : 'Not verified yet'}
-          tone={verification && verification.conflicts.length ? 'danger' : 'success'}
-          delay={0.15}
-        />
-      </div>
-
       <ColoringControls coloringState={cs} />
+      <InlineConflicts cs={cs} />
 
       <div className="viz-layout">
         <div className="viz-main">
           <div className="card viz-card">
-            <div className="card-title-row">
-              <h3 className="card-title">Interactive Graph</h3>
-              <span className="muted small">Drag to move · click to inspect</span>
+            <div className="card-title-row wrap">
+              <div className="viz-title">
+                <h3 className="card-title">Interactive Graph</h3>
+                <span className="muted small">
+                  {graph.statistics.vertices} vertices · {graph.statistics.edges} edges · drag to move, click to inspect
+                </span>
+              </div>
+              <div className="viz-tools">
+                <Toggle checked={cs.showDegrees} onChange={cs.setShowDegrees}>
+                  Show vertex degrees
+                </Toggle>
+              </div>
             </div>
             <GraphSVG
               key={graph.key}
@@ -59,6 +54,7 @@ export default function GraphView({ cs }) {
               onSelect={cs.setSelected}
               conflicts={cs.conflicts}
               phaseMs={cs.phaseMs}
+              showDegrees={cs.showDegrees}
             />
           </div>
         </div>
@@ -74,6 +70,7 @@ export default function GraphView({ cs }) {
           ) : (
             <StepPanel coloringState={cs} />
           )}
+          <GraphInfoPanel cs={cs} />
           <Legend coloring={coloring} pulse={legendPulse(cs)} />
           <AlgorithmTimeline coloringState={cs} />
         </aside>

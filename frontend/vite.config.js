@@ -23,5 +23,19 @@ export default defineConfig(({ command, mode }) => {
     plugins: [react()],
     server: { port: 5173, proxy: apiProxy },
     preview: { port: 4173, proxy: apiProxy },
+    build: {
+      rolldownOptions: {
+        output: {
+          // Libraries change less often than the app, so they get their own
+          // cacheable chunk; so does the (large, static) map geometry.
+          codeSplitting: {
+            groups: [
+              { name: 'vendor', test: /node_modules/ },
+              { name: 'india-geometry', test: /indiaGeometry/ },
+            ],
+          },
+        },
+      },
+    },
   };
 });

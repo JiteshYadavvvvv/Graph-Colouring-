@@ -41,7 +41,9 @@ from shapely.ops import polylabel, transform, unary_union
 ROOT = Path(__file__).resolve().parent.parent
 OUT_JS = ROOT / "frontend" / "src" / "data" / "indiaGeometry.js"
 
-# name in source data -> (id, display name, is a graph vertex?)
+# name in source data -> (state code, display name, is a graph vertex?)
+# The region ID written to the geometry is "IN-" + state code, the same
+# stable ID the backend uses for the vertex (backend/data/india_map.py).
 REGIONS = {
     "Jammu and Kashmir": ("JK", "Jammu and Kashmir", True),
     "Ladakh": ("LA", "Ladakh", True),
@@ -191,12 +193,13 @@ def main(source):
     # ---- Label anchors ----
     regions = []
     for n, geom in zip(names, simplified):
-        rid, display, is_vertex = REGIONS[n]
+        code, display, is_vertex = REGIONS[n]
         largest = max(polygons_of(geom), key=lambda p: p.area)
         anchor = polylabel(largest, tolerance=0.5)
         cx, cy = geom.centroid.x, geom.centroid.y
         regions.append({
-            "id": rid,
+            "id": f"IN-{code}",
+            "code": code,
             "name": display,
             "source": n,
             "vertex": is_vertex,

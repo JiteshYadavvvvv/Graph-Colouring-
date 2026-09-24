@@ -1,79 +1,139 @@
-import { ArrowDownWideNarrow, ChevronsRight, Gauge, Pause, Play, RotateCcw, StepForward } from 'lucide-react';
+import {
+  ArrowDownWideNarrow,
+  Eraser,
+  Footprints,
+  Gauge,
+  Pause,
+  Play,
+  RotateCcw,
+  SkipBack,
+  SkipForward,
+  Zap,
+} from 'lucide-react';
 import { SHORTCUTS } from '../hooks/useShortcuts';
 import { SPEEDS, STRATEGIES } from '../utils/constants';
+import { pad2 } from '../utils/helpers';
 import Button from './Button';
 import Segmented from './Segmented';
 
-/** Run / pause / step / finish / reset controls plus speed and vertex order. */
+/**
+ * Playback bar.
+ *   Execution modes (each asks the backend for a fresh run):
+ *     Auto Play      replay every phase automatically
+ *     Step-by-Step   stop after each phase; Next / Previous move through it
+ *     Instant        show the final coloring at once
+ *   Transport: Previous, Play/Pause, Next, Restart (replay the same run).
+ */
 export default function ColoringControls({ coloringState }) {
   const {
-    runState, run, togglePause, stepForward, skipToEnd, reset, speed, setSpeed, strategy, setStrategy,
+    graph, runState, run, playPause, stepForward, stepBack, restart, reset, result, cursor, totalSteps,
+    speed, setSpeed, strategy, setStrategy,
   } = coloringState;
   const busy = runState === 'requesting';
   const animating = runState === 'playing' || runState === 'paused';
+  const done = runState === 'done';
+  const total = totalSteps || graph.vertices.length;
+  const current = done ? total : animating ? cursor.step + 1 : 0;
+  const atStart = animating && cursor.step === 0 && cursor.phase === 0;
 
   return (
     <div className="card control-bar" role="group" aria-label="Algorithm controls">
-      <div className="control-buttons">
-        <Button
-          icon={Play}
-          onClick={() => run('animate')}
-          disabled={busy}
-          className="btn-run"
-          aria-label={runState === 'done' ? 'Run greedy coloring again' : 'Run greedy coloring'}
-        >
-          {runState === 'done' ? 'Run Again' : busy ? 'Starting…' : animating ? 'Restart' : 'Run Greedy Coloring'}
-        </Button>
-        <Button
-          variant="secondary"
-          icon={runState === 'paused' ? Play : Pause}
-          onClick={togglePause}
-          disabled={!animating}
-          aria-label={runState === 'paused' ? 'Resume animation' : 'Pause animation'}
-          className="btn-pause"
-        >
-          {runState === 'paused' ? 'Resume' : 'Pause'}
-        </Button>
-        <Button
-          variant="secondary"
-          icon={StepForward}
-          onClick={stepForward}
-          disabled={busy || runState === 'done'}
-          title="Advance one phase (select → check neighbors → choose → assign)"
-          aria-label="Advance one phase"
-        >
-          Step
-        </Button>
-        <Button
-          variant="ghost"
-          icon={ChevronsRight}
-          onClick={skipToEnd}
-          disabled={busy || runState === 'done'}
-          aria-label="Skip to the final coloring"
-          title="Finish: skip to the final coloring"
-          className="btn-icon"
-        />
-        <Button
-          variant="ghost"
-          icon={RotateCcw}
-          onClick={reset}
-          aria-label="Reset coloring"
-          title="Reset: clear the coloring and start over"
-          className="btn-icon"
-        />
+      <div className="control-row">
+        <div className="mode-buttons" role="group" aria-label="Execution mode">
+          <Button
+            icon={Play}
+            onClick={() => run('animate')}
+            disabled={busy}
+            className="btn-run"
+            aria-pressed={runState === 'playing'}
+            title="Ask the backend for a run and replay it automatically"
+          >
+            {busy ? 'Starting…' : 'Auto Play'}
+          </Button>
+          <Button
+            variant="secondary"
+            icon={Footprints}
+            onClick={() => run('paused')}
+            disabled={busy}
+            aria-pressed={runState === 'paused'}
+            title="Ask the backend for a run and go through it one phase at a time"
+          >
+            Step-by-Step
+          </Button>
+          <Button
+            variant="secondary"
+            icon={Zap}
+            onClick={() => run('instant')}
+            disabled={busy}
+            title="Ask the backend for a run and show the final coloring immediately"
+          >
+            Instant
+          </Button>
+        </div>
+
+        <div className="transport" role="group" aria-label="Playback">
+          <Button
+            variant="ghost"
+            icon={SkipBack}
+            className="btn-icon"
+            onClick={stepBack}
+            disabled={busy || !result || runState === 'idle' || atStart}
+            aria-label="Previous phase"
+            title="Previous phase (←)"
+          />
+          <Button
+            variant="secondary"
+            icon={runState === 'playing' ? Pause : Play}
+            className="btn-icon btn-play"
+            onClick={playPause}
+            disabled={busy}
+            aria-label={runState === 'playing' ? 'Pause' : done ? 'Replay' : 'Play'}
+            title={runState === 'playing' ? 'Pause (Space)' : 'Play (Space)'}
+          />
+          <Button
+            variant="ghost"
+            icon={SkipForward}
+            className="btn-icon"
+            onClick={stepForward}
+            disabled={busy || done}
+            aria-label="Next phase"
+            title="Next phase (→)"
+          />
+          <Button
+            variant="ghost"
+            icon={RotateCcw}
+            className="btn-icon"
+            onClick={restart}
+            disabled={busy || !result?.steps.length}
+            aria-label="Restart the replay"
+            title="Restart: replay this run from step 1"
+          />
+          <Button
+            variant="ghost"
+            icon={Eraser}
+            className="btn-icon"
+            onClick={reset}
+            disabled={runState === 'idle'}
+            aria-label="Clear the coloring"
+            title="Clear the coloring (R)"
+          />
+          <span className="step-readout" aria-live="off">
+            Step <strong>{pad2(current)}</strong> / {pad2(total)}
+          </span>
+        </div>
       </div>
 
       <div className="control-settings">
         <div className="setting">
           <Gauge size={16} className="muted" aria-hidden="true" />
           <Segmented
-            options={SPEEDS.map((s) => ({ value: s.id, label: s.label, title: `${s.label}: ${s.ms} ms per phase` }))}
+            options={SPEEDS.map((s) => ({ value: s.id, label: s.label, title: `${s.label} speed: ${s.ms} ms per phase` }))}
             value={speed}
             onChange={setSpeed}
-            ariaLabel="Animation speed"
+            ariaLabel="Playback speed"
           />
         </div>
-        <label className="setting" title="Order in which greedy visits the vertices">
+        <label className="setting" title="Order in which greedy coloring visits the vertices">
           <ArrowDownWideNarrow size={16} className="muted" aria-hidden="true" />
           <span className="select-wrap">
             <select

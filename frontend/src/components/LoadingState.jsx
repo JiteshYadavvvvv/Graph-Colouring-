@@ -11,7 +11,8 @@ export default function LoadingState({ label = 'Loading…' }) {
   );
 }
 
-export function ErrorState({ title = 'Something went wrong', message, hint, onRetry }) {
+/** Error with a clear message and recovery actions (Retry plus any `children`). */
+export function ErrorState({ title = 'Something went wrong', message, hint, onRetry, children }) {
   return (
     <motion.div
       className="state-box state-error"
@@ -25,11 +26,14 @@ export function ErrorState({ title = 'Something went wrong', message, hint, onRe
       <h2>{title}</h2>
       <p>{message}</p>
       {hint && <code className="state-hint">{hint}</code>}
-      {onRetry && (
-        <Button icon={RefreshCw} onClick={onRetry}>
-          Retry connection
-        </Button>
-      )}
+      <div className="hero-actions center">
+        {onRetry && (
+          <Button icon={RefreshCw} onClick={onRetry}>
+            Retry
+          </Button>
+        )}
+        {children}
+      </div>
     </motion.div>
   );
 }

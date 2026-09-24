@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { nameOf } from '../utils/helpers';
 import ColorChip from './ColorChip';
 import Segmented from './Segmented';
 
@@ -10,9 +11,8 @@ export default function AdjacencyTable({ graph, coloring = {}, selected, onSelec
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return graph.vertices.filter(
-      (v) => !q || v.toLowerCase().includes(q) || graph.adjacency[v].some((n) => n.toLowerCase().includes(q)),
-    );
+    const matches = (v) => v.toLowerCase().includes(q) || nameOf(graph, v).toLowerCase().includes(q);
+    return graph.vertices.filter((v) => !q || matches(v) || graph.adjacency[v].some(matches));
   }, [graph, query]);
 
   const select = (v) => onSelect?.(selected === v ? null : v);
@@ -23,7 +23,16 @@ export default function AdjacencyTable({ graph, coloring = {}, selected, onSelec
         <div>
           <h3 className="card-title">Adjacency List</h3>
           <p className="muted small">
-            Served by <code>GET /api/graph/{graph.key}</code>: {graph.vertices.length} vertices, {graph.edges.length} edges
+            {graph.key === 'custom' ? (
+              <>
+                Validated by <code>POST /api/analyze</code>
+              </>
+            ) : (
+              <>
+                Served by <code>GET /api/graph/{graph.key}</code>
+              </>
+            )}
+            : {graph.vertices.length} vertices, {graph.edges.length} edges
           </p>
         </div>
         <div className="adjacency-tools">
@@ -68,7 +77,7 @@ export default function AdjacencyTable({ graph, coloring = {}, selected, onSelec
               >
                 <div className="adj-root">
                   {coloring[v] ? <ColorChip color={coloring[v]} /> : <span className="dot-neutral" aria-hidden="true" />}
-                  <strong>{v}</strong>
+                  <strong>{nameOf(graph, v)}</strong>
                   <span className="degree-badge">{neighbors.length}</span>
                 </div>
                 <ul>
@@ -77,7 +86,7 @@ export default function AdjacencyTable({ graph, coloring = {}, selected, onSelec
                       <span className="branch" aria-hidden="true">
                         {i === neighbors.length - 1 ? '└──' : '├──'}
                       </span>
-                      {n}
+                      {nameOf(graph, n)}
                     </li>
                   ))}
                 </ul>
@@ -105,10 +114,10 @@ export default function AdjacencyTable({ graph, coloring = {}, selected, onSelec
                   onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), select(v))}
                 >
                   <td className="nowrap">
-                    <strong>{v}</strong>
+                    <strong>{nameOf(graph, v)}</strong> <span className="muted small">{v !== nameOf(graph, v) ? v : ''}</span>
                   </td>
                   <td>{graph.adjacency[v].length}</td>
-                  <td>{graph.adjacency[v].join(', ')}</td>
+                  <td>{graph.adjacency[v].map((n) => nameOf(graph, n)).join(', ')}</td>
                 </tr>
               ))}
             </tbody>

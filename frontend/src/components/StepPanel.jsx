@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowDown, Check, CircleDashed, Cpu, Sparkles } from 'lucide-react';
-import { PHASE_LABELS } from '../utils/constants';
-import { colorFill, pad2 } from '../utils/helpers';
+import { ArrowDown, ArrowRight, Check, CircleDashed, Cpu, Sparkles } from 'lucide-react';
+import { LAST_PHASE, PHASE_LABELS, strategyInfo } from '../utils/constants';
+import { colorFill, nameOf, pad2 } from '../utils/helpers';
 import ColorChip from './ColorChip';
+import ConflictDemoButtons from './ConflictDemoButtons';
 
 function Section({ title, reached, children }) {
   return (
@@ -15,7 +16,7 @@ function Section({ title, reached, children }) {
 
 function ProgressBar({ value }) {
   return (
-    <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value * 100)}>
+    <div className="progress" role="progressbar" aria-label="Vertices colored" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value * 100)}>
       <motion.div className="progress-fill" animate={{ width: `${value * 100}%` }} transition={{ duration: 0.35 }} />
     </div>
   );
@@ -26,8 +27,10 @@ function ProgressBar({ value }) {
  * read from the backend's step record, not computed in the browser.
  */
 export default function StepPanel({ coloringState }) {
-  const { result, runState, activeStep, cursor, totalSteps, completedSteps } = coloringState;
+  const cs = coloringState;
+  const { graph, result, runState, activeStep, cursor, totalSteps, completedSteps } = cs;
   const progress = totalSteps ? completedSteps / totalSteps : 0;
+  const name = (v) => nameOf(graph, v);
 
   if (!result || runState === 'idle' || runState === 'requesting') {
     return (
@@ -37,7 +40,7 @@ export default function StepPanel({ coloringState }) {
         <p className="muted small">
           {runState === 'requesting'
             ? 'Asking the FastAPI engine to run greedy coloring…'
-            : 'Press “Run Greedy Coloring”. The backend runs the algorithm and this panel replays every decision it made.'}
+            : 'Choose Auto Play, Step-by-Step or Instant. The backend runs the algorithm and this panel replays every decision it made.'}
         </p>
       </div>
     );
@@ -58,8 +61,8 @@ export default function StepPanel({ coloringState }) {
           <div>
             <strong>{result.steps.length} vertices colored</strong>
             <p className="muted small">
-              Greedy used <strong>{result.colors_used}</strong> color{result.colors_used === 1 ? '' : 's'}{' '}
-              ({result.strategy_label.toLowerCase()}).
+              Greedy used <strong>{result.colors_used}</strong> color{result.colors_used === 1 ? '' : 's'} ·{' '}
+              {strategyInfo(result.strategy).short}.
             </p>
           </div>
         </div>
@@ -68,12 +71,17 @@ export default function StepPanel({ coloringState }) {
             <ColorChip key={i} color={i + 1} />
           ))}
         </div>
+        <div className="step-section">
+          <div className="step-section-title">Conflict demo</div>
+          <ConflictDemoButtons cs={cs} size="sm" />
+        </div>
       </div>
     );
   }
 
   const step = activeStep;
   const phase = cursor.phase;
+  const nextStep = result.steps[cursor.step + 1];
 
   return (
     <div className="card step-panel" aria-live="polite">
@@ -87,9 +95,9 @@ export default function StepPanel({ coloringState }) {
       </div>
       <ProgressBar value={progress} />
 
-      <ol className="phase-track" aria-label="Phases of this step">
+      <ol className="phase-track five" aria-label="Phases of this step">
         {PHASE_LABELS.map((label, i) => (
-          <li key={label} className={i < phase ? 'past' : i === phase ? 'now' : ''}>
+          <li key={label} className={i < phase ? 'past' : i === phase ? 'now' : ''} aria-current={i === phase ? 'step' : undefined}>
             <span className="phase-dot">{i < phase ? <Check size={11} /> : i + 1}</span>
             <span className="phase-label">{label}</span>
           </li>
@@ -106,13 +114,14 @@ export default function StepPanel({ coloringState }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
           >
-            {step.vertex}
+            {name(step.vertex)}
             <span className="degree-badge">degree {step.degree}</span>
           </motion.div>
         </AnimatePresence>
+        <p className="muted small selection-reason">{step.selection}</p>
       </div>
 
-      <Section title="Checking Neighbors" reached={phase >= 1}>
+      <Section title="Checking Neighbors…" reached={phase >= 1}>
         <ul className="neighbor-list">
           {step.neighbors.map((n, i) => {
             const c = step.neighbor_colors[n];
@@ -124,7 +133,7 @@ export default function StepPanel({ coloringState }) {
                 transition={{ delay: i * 0.05 }}
               >
                 {c ? <Check size={14} className="ok" aria-hidden="true" /> : <CircleDashed size={14} className="muted" aria-hidden="true" />}
-                <span className="neighbor-name">{n}</span>
+                <span className="neighbor-name">{name(n)}</span>
                 {c ? (
                   <span className="neighbor-color">
                     → <ColorChip color={c} /> Color {c}
@@ -166,7 +175,7 @@ export default function StepPanel({ coloringState }) {
           style={{ '--chip': colorFill(step.assigned_color) }}
         >
           <ArrowDown size={14} aria-hidden="true" />
-          Smallest available color = <strong>{step.assigned_color}</strong>
+          Selected: <strong>Color {step.assigned_color}</strong> <span className="muted small">(smallest available)</span>
         </motion.div>
       )}
 
@@ -183,7 +192,20 @@ export default function StepPanel({ coloringState }) {
         </motion.div>
       </Section>
 
-      {phase >= 2 && <p className="step-message">{step.message}</p>}
+      {phase === LAST_PHASE && (
+        <motion.div className="advance-note" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
+          <ArrowRight size={14} aria-hidden="true" />
+          {nextStep ? (
+            <span>
+              Moving to the next vertex: <strong>{name(nextStep.vertex)}</strong> (step {nextStep.step})
+            </span>
+          ) : (
+            <span>Every vertex is colored. The algorithm ends here.</span>
+          )}
+        </motion.div>
+      )}
+
+      {phase >= 2 && phase < LAST_PHASE && <p className="step-message">{step.message}</p>}
     </div>
   );
 }

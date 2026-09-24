@@ -9,18 +9,19 @@ import {
   NEIGHBOR_FILL,
   NEIGHBOR_RING,
   NEUTRAL_FILL,
+  NEXT_RING,
   SELECT_RING,
   phaseTiming,
 } from '../utils/constants';
-import { colorFill, colorInk, edgeKey } from '../utils/helpers';
+import { colorFill, colorInk, edgeKey, nameOf } from '../utils/helpers';
 
 /*
  * Real state / UT boundaries, generated from GIS data by
  * tools/build_india_map.py and stored locally (no map service at runtime).
  *
  * This file draws SHAPES ONLY. Which states are adjacent always comes from
- * the backend graph (GET /api/graph/india). Regions are matched to graph
- * vertices through their state code (graph.labels[vertex] === region.id).
+ * the backend graph (GET /api/graph/india). A region and its graph vertex
+ * share the same stable ID ("IN-MH"), which is how the two are matched.
  */
 
 const { width: MAP_W, height: MAP_H } = INDIA_GEOMETRY;
@@ -32,13 +33,13 @@ const EMPTY = new Set();
  * shape plus a leader line; geography is never distorted to make room.
  */
 const LABEL_OVERRIDES = {
-  DL: { x: 362, y: 316, leader: true },
-  GA: { x: 158, y: 826, leader: true },
-  SK: { x: 704, y: 334, leader: true },
-  TR: { x: 772, y: 548, leader: true },
-  MZ: { y: 508 },
-  HR: { x: 292, y: 300 },
-  KL: { x: 246, y: 1034, leader: true },
+  'IN-DL': { x: 362, y: 316, leader: true },
+  'IN-GA': { x: 158, y: 826, leader: true },
+  'IN-SK': { x: 704, y: 334, leader: true },
+  'IN-TR': { x: 772, y: 548, leader: true },
+  'IN-MZ': { y: 508 },
+  'IN-HR': { x: 292, y: 300 },
+  'IN-KL': { x: 246, y: 1034, leader: true },
 };
 
 function boundsOf(path) {
@@ -99,6 +100,7 @@ export default function IndiaMapSVG({
   onSelect,
   conflicts = { vertices: EMPTY, edges: EMPTY },
   showEdges = false,
+  showDegrees = false,
   phaseMs = 600,
   interactive = true,
 }) {
@@ -112,12 +114,12 @@ export default function IndiaMapSVG({
   const reduceMotion = useReducedMotion();
   const t = phaseTiming(phaseMs);
 
-  // vertex name <-> region, joined through the state code.
+  // vertex <-> region: both use the same stable ID.
   const { vertexOf, regionOf } = useMemo(() => {
     const vOf = {};
     const rOf = {};
     for (const v of graph.vertices) {
-      const region = REGION_BY_ID[graph.labels[v]];
+      const region = REGION_BY_ID[v];
       if (region) {
         vOf[region.id] = v;
         rOf[v] = region;
@@ -126,7 +128,7 @@ export default function IndiaMapSVG({
     return { vertexOf: vOf, regionOf: rOf };
   }, [graph]);
 
-  const animating = Boolean(highlight.active);
+  const animating = highlight.running ?? Boolean(highlight.active);
   const focus = highlight.active ?? selected;
   const focusNeighbors = useMemo(() => {
     if (highlight.active) return highlight.phase >= 1 ? highlight.neighbors : EMPTY;
@@ -161,9 +163,10 @@ export default function IndiaMapSVG({
     else if (v === highlight.active) outlines.push({ v, region, kind: 'active' });
     else if (v === selected && !animating) outlines.push({ v, region, kind: 'selected' });
     else if (focusNeighbors.has(v)) outlines.push({ v, region, kind: 'neighbor' });
+    else if (v === highlight.next) outlines.push({ v, region, kind: 'next' });
     else if (region.id === hoverId) outlines.push({ v, region, kind: 'hover' });
   }
-  const outlineOrder = { hover: 0, neighbor: 1, selected: 2, active: 3, conflict: 4 };
+  const outlineOrder = { hover: 0, next: 1, neighbor: 2, selected: 3, active: 4, conflict: 5 };
   outlines.sort((a, b) => outlineOrder[a.kind] - outlineOrder[b.kind]);
 
   // showEdges: true = every edge, 'conflicts' = only the conflicting ones.
@@ -171,6 +174,7 @@ export default function IndiaMapSVG({
 
   const hoverRegion = hoverId ? REGION_BY_ID[hoverId] : null;
   const hoverVertex = hoverRegion ? vertexOf[hoverRegion.id] : null;
+  const selectedRegion = selected ? regionOf[selected] : null;
 
   return (
     <div className="map-wrap" ref={wrapRef}>
@@ -246,7 +250,7 @@ export default function IndiaMapSVG({
                 }}
                 role={interactive ? 'button' : undefined}
                 tabIndex={interactive ? 0 : undefined}
-                aria-label={`${v}, degree ${graph.adjacency[v].length}, ${color ? `color ${color}` : 'uncolored'}${isConflict ? ', in conflict' : ''}`}
+                aria-label={`${nameOf(graph, v)}, degree ${graph.adjacency[v].length}, ${color ? `color ${color}` : 'uncolored'}${isConflict ? ', in conflict with a neighbor' : ''}`}
                 aria-pressed={interactive ? v === selected : undefined}
                 onClick={() => select(v)}
                 onKeyDown={(e) => {
@@ -319,17 +323,45 @@ export default function IndiaMapSVG({
                       ? ACTIVE_RING
                       : kind === 'neighbor'
                         ? NEIGHBOR_RING
-                        : kind === 'hover'
-                          ? '#8391AD'
+                        : kind === 'hover' || kind === 'next'
+                          ? NEXT_RING
                           : SELECT_RING
                 }
-                strokeWidth={kind === 'hover' ? 1.6 : kind === 'neighbor' ? 2.2 : 2.8}
+                strokeWidth={kind === 'hover' ? 1.6 : kind === 'neighbor' || kind === 'next' ? 2.2 : 2.8}
+                strokeDasharray={kind === 'next' ? '7 5' : undefined}
                 strokeLinejoin="round"
                 vectorEffect="non-scaling-stroke"
               />
             </g>
           ))}
         </g>
+
+        {/* The selected region's edges, drawn from its center to each neighbor's. */}
+        {selectedRegion && !animating && !showEdges && (
+          <g className="map-edges selected-edges" pointerEvents="none">
+            {graph.adjacency[selected].map((n) =>
+              regionOf[n] ? (
+                <line
+                  key={n}
+                  x1={selectedRegion.anchorX}
+                  y1={selectedRegion.anchorY}
+                  x2={regionOf[n].anchorX}
+                  y2={regionOf[n].anchorY}
+                  stroke={SELECT_RING}
+                  strokeOpacity={0.75}
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ) : null,
+            )}
+            {[selected, ...graph.adjacency[selected]].map((v) =>
+              regionOf[v] ? (
+                <circle key={v} cx={regionOf[v].anchorX} cy={regionOf[v].anchorY} r={5} fill={SELECT_RING} />
+              ) : null,
+            )}
+          </g>
+        )}
 
         {/* Optional overlay: the graph's edges drawn between region centers. */}
         {showEdges && (
@@ -398,11 +430,37 @@ export default function IndiaMapSVG({
                   textAnchor="middle"
                   dy="0.35em"
                   fontSize={region.fontSize}
+                  style={{ '--fs': region.fontSize }}
                   className={`map-label ${ink === '#FFFFFF' ? 'on-dark' : ''} ${region.leader ? 'leader' : ''}`}
                   fill={ink}
                 >
-                  {region.id}
+                  {graph.labels[v] ?? region.code}
                 </text>
+                {showDegrees && (
+                  <text
+                    x={region.labelX}
+                    y={region.labelY + region.fontSize * 0.95}
+                    textAnchor="middle"
+                    dy="0.35em"
+                    fontSize={region.fontSize * 0.62}
+                    style={{ '--fs': region.fontSize * 0.62 }}
+                    className={`map-label degree-label ${ink === '#FFFFFF' ? 'on-dark' : ''} ${region.leader ? 'leader' : ''}`}
+                    fill={ink}
+                  >
+                    d={graph.adjacency[v].length}
+                  </text>
+                )}
+                {conflicts.vertices.has(v) && (
+                  <g
+                    className="conflict-icon"
+                    transform={`translate(${region.labelX + region.fontSize * 1.05} ${region.labelY - region.fontSize * 0.55})`}
+                  >
+                    <circle r={region.fontSize * 0.46} fill={CONFLICT_RED} stroke="#fff" strokeWidth={2.5} />
+                    <text textAnchor="middle" dy="0.36em" fontSize={region.fontSize * 0.62} fill="#fff" fontWeight="800">
+                      !
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -421,10 +479,12 @@ export default function IndiaMapSVG({
             transition={{ duration: 0.14 }}
             role="tooltip"
           >
-            <strong>{hoverVertex ?? hoverRegion.name}</strong>
+            <strong>{hoverVertex ? nameOf(graph, hoverVertex) : hoverRegion.name}</strong>
             {hoverVertex ? (
               <>
-                <span>Degree: {graph.adjacency[hoverVertex]?.length ?? 0}</span>
+                <span>
+                  {hoverVertex} · Degree: {graph.adjacency[hoverVertex]?.length ?? 0}
+                </span>
                 <span>
                   Color:{' '}
                   {coloring[hoverVertex] ? (
@@ -436,6 +496,7 @@ export default function IndiaMapSVG({
                     'not assigned'
                   )}
                 </span>
+                {conflicts.vertices.has(hoverVertex) && <span className="tip-warn">⚠ Same color as a neighbor</span>}
               </>
             ) : (
               <span>Union territory · not a graph vertex</span>

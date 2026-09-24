@@ -1,14 +1,14 @@
 import { motion } from 'framer-motion';
 import { ListOrdered } from 'lucide-react';
 import { useEffect, useRef } from 'react';
-import { colorFill, colorInk, pad2 } from '../utils/helpers';
+import { colorFill, colorInk, nameOf, pad2 } from '../utils/helpers';
 
 /**
  * Vertical timeline of the backend's visiting order: completed steps show
  * the color they received, the current step glows, pending steps stay muted.
  */
 export default function AlgorithmTimeline({ coloringState }) {
-  const { result, runState, cursor, completedSteps, totalSteps, selected, setSelected, animating } = coloringState;
+  const { graph, result, runState, cursor, completedSteps, totalSteps, selected, setSelected, animating } = coloringState;
   const listRef = useRef(null);
   const done = runState === 'done';
 
@@ -18,7 +18,9 @@ export default function AlgorithmTimeline({ coloringState }) {
     const list = listRef.current;
     const current = list?.querySelector('.tl-row.current');
     if (!list || !current) return;
-    const top = current.offsetTop - list.clientHeight / 2 + current.clientHeight / 2;
+    // Position of the row inside the scrolling list, whatever its offsetParent is.
+    const rowTop = current.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+    const top = rowTop - list.clientHeight / 2 + current.clientHeight / 2;
     list.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
   }, [cursor.step]);
 
@@ -66,7 +68,7 @@ export default function AlgorithmTimeline({ coloringState }) {
                 title={s.message}
               >
                 <span className="tl-step">Step {pad2(s.step)}</span>
-                <span className="tl-vertex">{s.vertex}</span>
+                <span className="tl-vertex">{nameOf(graph, s.vertex)}</span>
                 {finished ? (
                   <span className="tl-color" style={{ background: fill, color: colorInk(s.assigned_color) }}>
                     {s.assigned_color}

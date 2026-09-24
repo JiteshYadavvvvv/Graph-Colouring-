@@ -1,8 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { CircleCheck, LoaderCircle, TriangleAlert } from 'lucide-react';
+import { nameOf } from '../utils/helpers';
 
-/** Shows the verdict returned by POST /api/conflicts. */
-export default function ConflictBanner({ verification, verifying }) {
+/**
+ * Shows the verdict returned by POST /api/conflicts, with an icon and text so
+ * the result never depends on color alone.
+ */
+export default function ConflictBanner({ graph, verification, verifying }) {
+  const name = (v) => nameOf(graph, v);
   let content = null;
 
   if (verifying) {
@@ -40,16 +45,17 @@ export default function ConflictBanner({ verification, verifying }) {
             )}
           </strong>
           <p className="conflict-pair">
-            {first.region_a} <span aria-label="and">↔</span> {first.region_b}
+            {name(first.region_a)} <span aria-label="and">↔</span> {name(first.region_b)}
           </p>
           <p>
-            Both use <b>Color {first.color}</b> and share a border, which is an edge in the graph. The backend found
-            this by checking all {verification.checked_edges} edges.
+            {name(first.region_a)} and {name(first.region_b)} have the same color (<b>Color {first.color}</b>) but
+            are adjacent{graph?.kind === 'map' ? ' (they share a border)' : ''}. Adjacent vertices must get
+            different colors. The backend found this by checking all {verification.checked_edges} edges.
           </p>
           {rest.length > 0 && (
             <p className="small">
               Also:{' '}
-              {rest.map((c) => `${c.region_a} – ${c.region_b} (Color ${c.color})`).join('; ')}
+              {rest.map((c) => `${name(c.region_a)} – ${name(c.region_b)} (Color ${c.color})`).join('; ')}
             </p>
           )}
         </div>

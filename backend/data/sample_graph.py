@@ -4,17 +4,19 @@ works on ANY graph, not just on maps.
 """
 
 # ---------------------------------------------------------------------------
-# Sample graph: a "wheel". C is the hub, and A-B-E-F-D-A is a 5-cycle rim.
-# The rim is an odd cycle, so it needs 3 colors, and the hub touches every
-# rim vertex, so it needs a 4th. The chromatic number is therefore 4.
+# Simple demo graph: a "wheel". C is the hub, and A-B-E-F-D-A is a 5-cycle
+# rim. The rim is an odd cycle, so it needs 3 colors, and the hub touches
+# every rim vertex, so it needs a 4th.
 # ---------------------------------------------------------------------------
 KEY = "sample"
-NAME = "Sample Graph"
+NAME = "Simple Demo Graph"
 KIND = "graph"
-DESCRIPTION = (
-    "An abstract 6-vertex wheel graph (hub C plus an odd 5-cycle). "
-    "Its chromatic number is 4."
-)
+GRAPH_TYPE = "Wheel graph W6 (a hub plus a 5-cycle rim)"
+DESCRIPTION = "A 6-vertex wheel: hub C is connected to every vertex of the odd rim A–B–E–F–D."
+CHARACTERISTICS = [
+    "The rim is an odd cycle, which needs 3 colors on its own.",
+    "The hub touches every rim vertex, so it needs a 4th color.",
+]
 
 ADJACENCY = {
     "A": ["B", "C", "D"],
@@ -24,8 +26,6 @@ ADJACENCY = {
     "E": ["B", "C", "F"],
     "F": ["C", "D", "E"],
 }
-
-LABELS = {v: v for v in ADJACENCY}
 
 LAYOUT = {
     "A": (300, 80),
@@ -48,6 +48,7 @@ LAYOUT = {
 # ---------------------------------------------------------------------------
 MINI_KEY = "mini"
 MINI_NAME = "Mini Tutorial Graph"
+MINI_GRAPH_TYPE = "Small planar graph"
 MINI_DESCRIPTION = "A 5-vertex graph used for the step-by-step tutorial."
 
 MINI_ADJACENCY = {

@@ -29,7 +29,7 @@ export class ApiError extends Error {
   constructor(message, { kind = 'server', status = 0, url = '' } = {}) {
     super(message);
     this.name = 'ApiError';
-    this.kind = kind; // 'network' | 'server' | 'not_found' | 'invalid'
+    this.kind = kind; // 'network' | 'server' | 'not_found' | 'invalid' | 'invalid_response'
     this.status = status;
     this.url = url;
   }
@@ -41,6 +41,7 @@ const MESSAGES = {
   notFound: 'API endpoint not found.',
   server: 'Coloring engine encountered a server error.',
   unreadable: 'The coloring engine sent an unreadable response.',
+  malformed: 'The coloring engine sent a response in an unexpected format.',
 };
 
 function describeDetail(detail) {
@@ -56,7 +57,12 @@ function fail(message, { kind, status = 0, method, url }) {
   return new ApiError(shown, { kind, status, url });
 }
 
-async function request(path, { method = 'GET', body } = {}) {
+/**
+ * `shape` (optional) checks a successful response's body, so a proxy error
+ * page or an outdated backend shows a clear message instead of crashing a
+ * component later.
+ */
+async function request(path, { method = 'GET', body, shape } = {}) {
   const url = apiUrl(path);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -111,19 +117,60 @@ async function request(path, { method = 'GET', body } = {}) {
     });
   }
   if (payload === null) {
-    throw fail(MESSAGES.unreadable, { kind: 'server', status: response.status, method, url });
+    throw fail(MESSAGES.unreadable, { kind: 'invalid_response', status: response.status, method, url });
+  }
+  if (shape && !shape(payload)) {
+    throw fail(MESSAGES.malformed, { kind: 'invalid_response', status: response.status, method, url });
   }
   return payload;
 }
 
+const isObject = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+
+const SHAPES = {
+  graph: (g) => isObject(g) && Array.isArray(g.vertices) && isObject(g.adjacency) && isObject(g.layout) && isObject(g.statistics),
+  color: (r) => isObject(r) && Array.isArray(r.steps) && isObject(r.coloring) && Array.isArray(r.order),
+  conflicts: (r) => isObject(r) && typeof r.valid === 'boolean' && Array.isArray(r.conflicts),
+  compare: (r) => isObject(r) && Array.isArray(r.results),
+};
+
+/**
+ * A graph to work on: a built-in dataset key ("india" or { dataset: "india" })
+ * or a custom graph from the Playground ({ graph: adjacency, names }).
+ */
+function sourceBody(source) {
+  if (typeof source === 'string') return { dataset: source };
+  if (source.graph) return { graph: source.graph, names: source.names };
+  return { dataset: source.dataset };
+}
+
+// Built-in datasets never change while the app runs, so each one is fetched
+// at most once. Failed requests are not cached, so Retry really retries.
+const graphCache = new Map();
+
 export const getHealth = () => request('health');
 
-export const getDatasets = () => request('datasets');
+export const getDatasets = () => request('datasets', { shape: Array.isArray });
 
-export const getGraph = (dataset) => request(`graph/${encodeURIComponent(dataset)}`);
+export function getGraph(dataset) {
+  const path = `graph/${encodeURIComponent(dataset)}`;
+  if (!graphCache.has(dataset)) {
+    const pending = request(path, { shape: SHAPES.graph });
+    graphCache.set(dataset, pending);
+    pending.catch(() => graphCache.delete(dataset));
+  }
+  return graphCache.get(dataset);
+}
 
-export const runColoring = (dataset, strategy = 'natural') =>
-  request('color', { method: 'POST', body: { dataset, strategy } });
+/** Validates a Playground graph on the backend and returns it in dataset format. */
+export const analyzeGraph = ({ adjacency, names, layout }) =>
+  request('analyze', { method: 'POST', body: { graph: adjacency, names, layout }, shape: SHAPES.graph });
 
-export const checkConflicts = (dataset, coloring) =>
-  request('conflicts', { method: 'POST', body: { dataset, coloring } });
+export const runColoring = (source, strategy = 'natural') =>
+  request('color', { method: 'POST', body: { ...sourceBody(source), strategy }, shape: SHAPES.color });
+
+export const checkConflicts = (source, coloring) =>
+  request('conflicts', { method: 'POST', body: { ...sourceBody(source), coloring }, shape: SHAPES.conflicts });
+
+export const compareAlgorithms = (source) =>
+  request('compare', { method: 'POST', body: sourceBody(source), shape: SHAPES.compare });

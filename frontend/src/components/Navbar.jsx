@@ -1,13 +1,8 @@
-import { RotateCcw } from 'lucide-react';
+import { GraduationCap, RotateCcw } from 'lucide-react';
+import { CUSTOM_DATASET } from '../utils/constants';
 import Button from './Button';
-
-const RUN_LABELS = {
-  idle: 'Ready',
-  requesting: 'Contacting engine…',
-  playing: 'Running',
-  paused: 'Paused',
-  done: 'Completed',
-};
+import ExportMenu from './ExportMenu';
+import StatusIndicators from './StatusIndicators';
 
 function Logo() {
   return (
@@ -21,45 +16,56 @@ function Logo() {
   );
 }
 
-export default function Navbar({ datasets, datasetKey, onDatasetChange, runState, strategy, onReset }) {
-  const strategyLabel = strategy === 'largest_first' ? 'Largest-first' : 'Natural order';
+export default function Navbar({ cs, onNavigate }) {
+  const { datasets, datasetKey, changeDataset, hasCustomGraph } = cs;
   return (
     <header className="navbar">
-      <div className="brand">
+      <a
+        className="brand"
+        href="#home"
+        onClick={(e) => {
+          e.preventDefault();
+          onNavigate('home');
+        }}
+      >
         <Logo />
         <div>
-          <div className="brand-title">Interactive Map Coloring</div>
-          <div className="brand-sub">Graph Coloring • DSA Visualization</div>
+          <div className="brand-title">Interactive Map Coloring System</div>
+          <div className="brand-sub">Graph Coloring Visualizer</div>
         </div>
-      </div>
+      </a>
+
+      <StatusIndicators cs={cs} className="navbar-status" compact />
 
       <div className="navbar-actions">
-        <div className={`algo-indicator state-${runState}`} aria-live="polite">
-          <span className="dot" aria-hidden="true" />
-          <span className="algo-name">Greedy</span>
-          <span className="algo-meta">
-            {strategyLabel} · {RUN_LABELS[runState]}
-          </span>
-        </div>
-
         <label className="select-field">
           <span>Dataset</span>
-          <select
-            value={datasetKey}
-            onChange={(e) => onDatasetChange(e.target.value)}
-            aria-label="Select dataset"
-          >
+          <select value={datasetKey} onChange={(e) => changeDataset(e.target.value)} aria-label="Select dataset">
             {datasets.length === 0 && <option value={datasetKey}>Loading…</option>}
             {datasets.map((d) => (
               <option key={d.key} value={d.key}>
                 {d.name}
               </option>
             ))}
+            {hasCustomGraph && <option value={CUSTOM_DATASET}>Custom graph (Playground)</option>}
           </select>
         </label>
 
-        <Button variant="secondary" icon={RotateCcw} onClick={onReset} aria-label="Reset coloring">
-          <span className="hide-sm">Reset</span>
+        <ExportMenu cs={cs} />
+
+        <Button variant="secondary" icon={GraduationCap} onClick={() => onNavigate('viva')} aria-label="Viva Mode">
+          <span className="label-keep">Viva Mode</span>
+        </Button>
+
+        <Button
+          variant="secondary"
+          icon={RotateCcw}
+          onClick={cs.resetExperiment}
+          aria-label="Reset experiment"
+          title="Clear the coloring and restore the default speed, order and view options"
+        >
+          <span className="label-wide">Reset Experiment</span>
+          <span className="label-mid">Reset</span>
         </Button>
       </div>
     </header>

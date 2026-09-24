@@ -7,10 +7,11 @@ import {
   NEIGHBOR_FILL,
   NEIGHBOR_RING,
   NEUTRAL_FILL,
+  NEXT_RING,
   SELECT_RING,
   phaseTiming,
 } from '../utils/constants';
-import { colorFill, colorInk, edgeKey, layoutViewBox } from '../utils/helpers';
+import { colorFill, colorInk, edgeKey, layoutViewBox, nameOf } from '../utils/helpers';
 
 const EMPTY = new Set();
 
@@ -31,12 +32,14 @@ function initialPositions(graph) {
 export default function GraphSVG({
   graph,
   coloring = {},
-  highlight = { active: null, neighbors: EMPTY, phase: 0, recent: null },
+  highlight = { running: false, active: null, neighbors: EMPTY, phase: 0, recent: null, next: null },
   selected = null,
   onSelect,
   conflicts = { vertices: EMPTY, edges: EMPTY },
   nodeRadius,
+  showDegrees = false,
   draggable = true,
+  interactive = true,
   phaseMs = 600,
   className = '',
   ariaLabel,
@@ -88,14 +91,14 @@ export default function GraphSVG({
     tween.current = requestAnimationFrame(step);
   };
 
-  const animating = Boolean(highlight.active);
+  const animating = highlight.running ?? Boolean(highlight.active);
   // During the animation the current vertex is in focus; otherwise hover, then selection.
-  const focus = highlight.active ?? (drag.current?.moved ? null : hovered) ?? selected;
+  const focus = animating ? highlight.active : ((drag.current?.moved ? null : hovered) ?? selected);
   const focusNeighbors = useMemo(() => {
-    if (highlight.active) return highlight.phase >= 1 ? highlight.neighbors : EMPTY;
+    if (animating) return highlight.neighbors ?? EMPTY;
     if (focus) return new Set(graph.adjacency[focus] ?? []);
     return EMPTY;
-  }, [highlight, focus, graph]);
+  }, [animating, highlight, focus, graph]);
   const dimOthers = !animating && Boolean(focus);
   const checkingEdges = animating && highlight.phase >= 1 && highlight.phase <= 2;
 
@@ -155,14 +158,14 @@ export default function GraphSVG({
 
   const hoveredPos = hovered && positions[hovered];
   const tipText = hovered
-    ? `${hovered} · degree ${graph.adjacency[hovered]?.length ?? 0} · ${coloring[hovered] ? `Color ${coloring[hovered]}` : 'uncolored'}`
+    ? `${nameOf(graph, hovered)} · degree ${graph.adjacency[hovered]?.length ?? 0} · ${coloring[hovered] ? `Color ${coloring[hovered]}` : 'uncolored'}${conflicts.vertices.has(hovered) ? ' · ⚠ conflict' : ''}`
     : '';
   const tipWidth = tipText.length * 6.6 + 22;
   const tipX = hoveredPos ? clamp(hoveredPos.x, box.x + tipWidth / 2 + 4, box.x + box.w - tipWidth / 2 - 4) : 0;
   const tipAbove = hoveredPos ? hoveredPos.y - r - 18 > box.y + 14 : true;
 
   return (
-    <div className={`graph-svg-wrap ${className}`}>
+    <div className={`graph-svg-wrap ${interactive ? '' : 'static'} ${className}`}>
       <svg
         ref={svgRef}
         className="graph-svg"
@@ -231,7 +234,8 @@ export default function GraphSVG({
             const isNeighbor = focusNeighbors.has(v);
             const isConflict = conflicts.vertices.has(v);
             const faded = dimOthers && v !== focus && !isNeighbor && !isConflict;
-            const justAssigned = isActive && highlight.phase === 3 && color;
+            const justAssigned = v === highlight.recent && color;
+            const isNext = v === highlight.next;
             const fill = color
               ? colorFill(color)
               : isActive
@@ -254,10 +258,10 @@ export default function GraphSVG({
                 key={v}
                 transform={`translate(${pos.x} ${pos.y})`}
                 className={`graph-node ${draggable ? 'draggable' : ''}`}
-                role="button"
-                tabIndex={0}
-                aria-label={`${v}, degree ${graph.adjacency[v].length}, ${color ? `color ${color}` : 'uncolored'}${isConflict ? ', in conflict' : ''}`}
-                aria-pressed={isSelected}
+                role={interactive ? 'button' : undefined}
+                tabIndex={interactive ? 0 : undefined}
+                aria-label={`${nameOf(graph, v)}, degree ${graph.adjacency[v].length}, ${color ? `color ${color}` : 'uncolored'}${isConflict ? ', in conflict with a neighbor' : ''}`}
+                aria-pressed={interactive ? isSelected : undefined}
                 onPointerDown={(e) => handlePointerDown(v, e)}
                 onPointerEnter={() => setHovered(v)}
                 onPointerLeave={() => setHovered((h) => (h === v ? null : h))}
@@ -278,9 +282,12 @@ export default function GraphSVG({
                     fill={isConflict ? CONFLICT_RED : ACTIVE_RING}
                   />
                 )}
+                {isNext && (
+                  <circle r={r + 6} fill="none" stroke={NEXT_RING} strokeWidth={2.5} strokeDasharray="6 5" />
+                )}
                 {justAssigned && !reduceMotion && (
                   <motion.circle
-                    key={`ripple-${color}`}
+                    key={`ripple-${v}-${color}`}
                     r={r}
                     fill="none"
                     stroke={fill}
@@ -314,6 +321,22 @@ export default function GraphSVG({
                     {graph.labels[v] ?? v}
                   </text>
                 </motion.g>
+                {showDegrees && (
+                  <g className="node-badge" transform={`translate(${r * 0.82} ${-r * 0.82})`} aria-hidden="true">
+                    <circle r={Math.max(9, r * 0.46)} fill="#172033" stroke="#fff" strokeWidth={2} />
+                    <text textAnchor="middle" dy="0.35em" fontSize={Math.max(10, r * 0.5)} fill="#fff" fontWeight="700">
+                      {graph.adjacency[v].length}
+                    </text>
+                  </g>
+                )}
+                {isConflict && (
+                  <g className="node-badge conflict-icon" transform={`translate(${-r * 0.82} ${-r * 0.82})`} aria-hidden="true">
+                    <circle r={Math.max(9, r * 0.46)} fill={CONFLICT_RED} stroke="#fff" strokeWidth={2} />
+                    <text textAnchor="middle" dy="0.36em" fontSize={Math.max(11, r * 0.56)} fill="#fff" fontWeight="800">
+                      !
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}

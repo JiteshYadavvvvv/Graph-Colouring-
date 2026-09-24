@@ -1,13 +1,16 @@
 import { motion } from 'framer-motion';
-import { Bug, ScanSearch, ShieldCheck, Undo2, Zap } from 'lucide-react';
+import { Bug, ScanSearch, ShieldCheck, Zap } from 'lucide-react';
 import Button from '../components/Button';
 import ColorChip from '../components/ColorChip';
 import ConflictBanner from '../components/ConflictBanner';
+import ConflictDemoButtons from '../components/ConflictDemoButtons';
 import VizStage from '../components/VizStage';
+import { nameOf } from '../utils/helpers';
 
 export default function ConflictsView({ cs }) {
   const { graph, result, runState, coloring, verification, verifying, simulated } = cs;
   const done = runState === 'done';
+  const name = (v) => nameOf(graph, v);
   const hasColoring = Object.keys(coloring).length > 0;
 
   return (
@@ -53,21 +56,13 @@ export default function ConflictsView({ cs }) {
             <Bug size={22} aria-hidden="true" />
           </div>
           <div className="action-body">
-            <h3>Developer Demo: Simulate Conflict</h3>
+            <h3>Simulate Conflict</h3>
             <p className="muted small">
               Picks a random edge (u, v) and gives u the same color as v, <strong>in the browser only</strong>. The
-              backend graph is not changed. The detector then has to find the conflict on its own.
+              backend graph is not changed. The detector then has to find the conflict on its own.{' '}
+              <strong>Fix Coloring</strong> restores the algorithm's valid coloring.
             </p>
-            <div className="hero-actions">
-              <Button variant="debug" icon={Bug} onClick={cs.simulateConflict} disabled={!done || verifying}>
-                {simulated ? 'Simulate Another' : 'Simulate Conflict'}
-              </Button>
-              {simulated && (
-                <Button variant="secondary" icon={Undo2} onClick={cs.restoreColoring} disabled={verifying}>
-                  Restore Valid Coloring
-                </Button>
-              )}
-            </div>
+            <ConflictDemoButtons cs={cs} />
             {!done && <p className="muted small">Available once the coloring has finished.</p>}
           </div>
         </div>
@@ -75,13 +70,13 @@ export default function ConflictsView({ cs }) {
 
       {simulated && (
         <motion.p className="note warn" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          Simulated change: <strong>{simulated.vertex}</strong> changed from <ColorChip color={simulated.from} /> Color{' '}
+          Simulated change: <strong>{name(simulated.vertex)}</strong> changed from <ColorChip color={simulated.from} /> Color{' '}
           {simulated.from} to <ColorChip color={simulated.to} /> Color {simulated.to} (copied from its neighbor{' '}
-          <strong>{simulated.partner}</strong>).
+          <strong>{name(simulated.partner)}</strong>).
         </motion.p>
       )}
 
-      <ConflictBanner verification={verification} verifying={verifying} />
+      <ConflictBanner graph={graph} verification={verification} verifying={verifying} />
 
       <div className="viz-layout">
         <div className="viz-main">
@@ -109,8 +104,8 @@ export default function ConflictsView({ cs }) {
                   <tbody>
                     {verification.conflicts.map((c) => (
                       <tr key={`${c.region_a}-${c.region_b}`} className="conflict">
-                        <td>{c.region_a}</td>
-                        <td>{c.region_b}</td>
+                        <td>{name(c.region_a)}</td>
+                        <td>{name(c.region_b)}</td>
                         <td className="nowrap">
                           <ColorChip color={c.color} /> Color {c.color}
                         </td>

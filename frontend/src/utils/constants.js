@@ -1,9 +1,14 @@
 import {
   BarChart3,
   BookOpen,
-  Home,
+  Database,
+  GraduationCap,
+  House,
+  Lightbulb,
   Map as MapIcon,
   Network,
+  PencilRuler,
+  Scale,
   ShieldAlert,
   Table2,
 } from 'lucide-react';
@@ -31,48 +36,74 @@ export const CONFLICT_RED = '#E5484D';
 export const ACTIVE_RING = '#6C5CE7';
 export const NEIGHBOR_RING = '#12A4B5';
 export const SELECT_RING = '#172033';
+export const NEXT_RING = '#8391AD';
 
-/** Sidebar navigation. `id` is also the URL hash. */
+export const DEFAULT_DATASET = 'india';
+export const CUSTOM_DATASET = 'custom';
+
+/** Every page. `id` is also the URL hash. */
 export const VIEWS = [
-  { id: 'home', label: 'Home', icon: Home },
-  { id: 'graph', label: 'Graph', icon: Network },
+  { id: 'home', label: 'Home', icon: House },
+  { id: 'datasets', label: 'Datasets', icon: Database },
   { id: 'map', label: 'Map', icon: MapIcon },
+  { id: 'graph', label: 'Graph', icon: Network },
+  { id: 'playground', label: 'Playground', icon: PencilRuler },
   { id: 'results', label: 'Results', icon: Table2 },
   { id: 'conflicts', label: 'Conflicts', icon: ShieldAlert },
-  { id: 'how', label: 'How It Works', icon: BookOpen },
   { id: 'stats', label: 'Statistics', icon: BarChart3 },
+  { id: 'compare', label: 'Compare', icon: Scale },
+  { id: 'how', label: 'How It Works', icon: BookOpen },
+  { id: 'applications', label: 'Applications', icon: Lightbulb },
+  { id: 'viva', label: 'Viva Mode', icon: GraduationCap },
+];
+
+/** Sidebar sections. */
+export const NAV_GROUPS = [
+  { label: 'Overview', views: ['home', 'datasets'] },
+  { label: 'Visualize', views: ['map', 'graph', 'playground'] },
+  { label: 'Analyze', views: ['results', 'conflicts', 'stats', 'compare'] },
+  { label: 'Learn', views: ['how', 'applications', 'viva'] },
 ];
 
 /**
- * Each backend step is replayed in four phases so the reasoning is visible:
- *   0 select   → highlight the current vertex
+ * Each backend step is replayed in five phases so the reasoning is visible:
+ *   0 select   → highlight the vertex chosen next
  *   1 inspect  → highlight its neighbors and read their colors
  *   2 choose   → cross out used colors, find the smallest available one
  *   3 assign   → fill the vertex with that color
+ *   4 advance  → the loop moves on; the next vertex is previewed
  */
-export const PHASES = ['select', 'inspect', 'choose', 'assign'];
+export const PHASES = ['select', 'inspect', 'choose', 'assign', 'advance'];
+export const LAST_PHASE = PHASES.length - 1;
 export const PHASE_LABELS = [
-  'Select vertex',
-  'Check neighbors',
-  'Find smallest color',
+  'Choose vertex',
+  'Check neighboring colors',
+  'Find available color',
   'Assign color',
+  'Move to next vertex',
 ];
 
 /**
- * Playback speeds. `ms` is how long each of the four phases of a step stays
- * on screen. Every animation duration in the visualizations is derived from
- * this one value (see phaseTiming below), so nothing else hardcodes timings.
+ * Playback speeds. `ms` is how long each phase of a step stays on screen
+ * (the short "move to next vertex" phase gets half of it). Every animation
+ * duration in the visualizations is derived from this one value (see
+ * phaseTiming below), so nothing else hardcodes timings.
  */
 export const SPEEDS = [
-  { id: 'slow', label: 'Slow', ms: 1800 },
-  { id: 'normal', label: 'Normal', ms: 1100 },
-  { id: 'fast', label: 'Fast', ms: 500 },
-  { id: 'instant', label: 'Instant', ms: 100 },
+  { id: '0.5x', label: '0.5×', ms: 1800 },
+  { id: '1x', label: '1×', ms: 900 },
+  { id: '2x', label: '2×', ms: 450 },
+  { id: '4x', label: '4×', ms: 225 },
 ];
-export const DEFAULT_SPEED = 'normal';
+export const DEFAULT_SPEED = '1x';
 
 export function speedMs(id) {
   return (SPEEDS.find((s) => s.id === id) ?? SPEEDS[1]).ms;
+}
+
+/** How long a given phase stays on screen at a given speed. */
+export function phaseDuration(phase, ms) {
+  return phase === LAST_PHASE ? ms / 2 : ms;
 }
 
 /** Animation durations (in seconds, for Framer Motion) derived from the phase length. */
@@ -86,7 +117,31 @@ export function phaseTiming(ms) {
   };
 }
 
+/**
+ * Vertex orders the backend supports. All three are greedy: they differ only
+ * in which vertex is colored next.
+ */
 export const STRATEGIES = [
-  { id: 'natural', label: 'Natural order' },
-  { id: 'largest_first', label: 'Largest degree first' },
+  {
+    id: 'natural',
+    label: 'Greedy · natural order',
+    short: 'Natural order',
+    algorithm: 'Greedy Coloring',
+  },
+  {
+    id: 'largest_first',
+    label: 'Welsh–Powell · largest degree first',
+    short: 'Welsh–Powell order',
+    algorithm: 'Welsh–Powell',
+  },
+  {
+    id: 'dsatur',
+    label: 'DSATUR · most saturated first',
+    short: 'DSATUR order',
+    algorithm: 'DSATUR',
+  },
 ];
+
+export function strategyInfo(id) {
+  return STRATEGIES.find((s) => s.id === id) ?? STRATEGIES[0];
+}

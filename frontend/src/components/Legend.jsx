@@ -6,7 +6,8 @@ const STATES = [
   { label: 'Uncolored', swatch: { background: NEUTRAL_FILL } },
   { label: 'Current vertex', swatch: { background: '#fff', boxShadow: `0 0 0 3px ${ACTIVE_RING}` } },
   { label: 'Neighbor being checked', swatch: { background: NEIGHBOR_FILL, boxShadow: `0 0 0 2px ${NEIGHBOR_RING}` } },
-  { label: 'Conflict', swatch: { background: '#fff', boxShadow: `0 0 0 3px ${CONFLICT_RED}` } },
+  { label: 'Conflict (same color as a neighbor)', swatch: { background: CONFLICT_RED, boxShadow: `0 0 0 3px ${CONFLICT_RED}` }, mark: '!' },
+  { label: 'Next vertex (dashed)', swatch: { background: '#fff', border: '2px dashed #8391AD' } },
 ];
 
 /**
@@ -63,7 +64,9 @@ export default function Legend({ coloring, showStates = true, title = 'Legend', 
         <ul className="legend-states">
           {STATES.map((s) => (
             <li key={s.label}>
-              <span className="swatch" style={s.swatch} aria-hidden="true" />
+              <span className="swatch" style={s.swatch} aria-hidden="true">
+                {s.mark && <b className="swatch-mark">{s.mark}</b>}
+              </span>
               {s.label}
             </li>
           ))}

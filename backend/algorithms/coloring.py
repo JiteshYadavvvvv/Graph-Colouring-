@@ -3,8 +3,8 @@ Greedy Graph Coloring, implemented from scratch (no graph library).
 
 Graph representation
 --------------------
-Every graph is an ADJACENCY LIST: a dict that maps each vertex to the list of
-vertices it shares an edge with.
+Every graph is an ADJACENCY LIST: a dict that maps each vertex ID to the list
+of vertex IDs it shares an edge with.
 
     graph = {
         "A": ["B", "C"],
@@ -16,6 +16,16 @@ The graph is undirected, so if "B" is in graph["A"] then "A" is in graph["B"].
 
 Colors are the positive integers 1, 2, 3, ... The frontend maps each integer
 to a display color, and the algorithm only ever sees numbers.
+
+Vertex order
+------------
+Greedy coloring always colors one vertex at a time and gives it the smallest
+color that none of its already-colored neighbors uses. The variants differ
+only in WHICH vertex is colored next:
+
+    natural        dataset order                          (static order)
+    largest_first  highest degree first (Welsh–Powell)    (static order)
+    dsatur         most distinct neighbor colors first    (chosen at every step)
 """
 
 from typing import Dict, Hashable, Iterable, List, Optional, Set
@@ -26,6 +36,7 @@ Coloring = Dict[Hashable, int]
 ORDER_STRATEGIES = {
     "natural": "Natural order (vertices in dataset order)",
     "largest_first": "Largest degree first (Welsh–Powell order)",
+    "dsatur": "DSATUR (most-saturated vertex first)",
 }
 
 
@@ -34,10 +45,11 @@ ORDER_STRATEGIES = {
 # ---------------------------------------------------------------------------
 
 def vertex_order(graph: Graph, strategy: str = "natural") -> List[Hashable]:
-    """Return the order in which greedy coloring will visit the vertices.
+    """Return the order in which greedy coloring visits the vertices, for the
+    strategies whose order is fixed before coloring starts.
 
-    Greedy coloring always colors vertices one at a time. The only thing that
-    changes between variants is the ORDER in which we visit them.
+    DSATUR has no fixed order: it picks the next vertex while coloring (see
+    most_saturated_vertex), so it is not handled here.
     """
     if strategy == "natural":
         return list(graph.keys())
@@ -47,6 +59,17 @@ def vertex_order(graph: Graph, strategy: str = "natural") -> List[Hashable]:
         # original dataset order. Cost: O(V log V).
         return sorted(graph.keys(), key=lambda v: len(graph[v]), reverse=True)
     raise ValueError(f"Unknown ordering strategy '{strategy}'")
+
+
+def most_saturated_vertex(candidates: Iterable[Hashable], saturation: Dict[Hashable, Set[int]],
+                          graph: Graph, position: Dict[Hashable, int]) -> Hashable:
+    """DSATUR's choice: the uncolored vertex whose colored neighbors use the
+    most DISTINCT colors (its saturation). Ties go to the higher degree, then
+    to the vertex listed first in the dataset, so the result is deterministic.
+
+    Scans every candidate, so one call costs O(V).
+    """
+    return max(candidates, key=lambda v: (len(saturation[v]), len(graph[v]), -position[v]))
 
 
 def smallest_available_color(used_colors: Set[int]) -> int:
@@ -121,12 +144,15 @@ def greedy_coloring(graph: Graph, order: Optional[List[Hashable]] = None) -> Col
     return coloring
 
 
-def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural") -> dict:
+def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural",
+                               names: Optional[Dict[Hashable, str]] = None) -> dict:
     """Run greedy coloring and record every decision it makes.
 
     This runs the same algorithm as greedy_coloring(), but it also writes down
-    the reasoning at each vertex (which neighbors were checked, which colors
-    were blocked, which were free) so the frontend can replay it exactly.
+    the reasoning at each vertex (why it was picked, which neighbors were
+    checked, which colors were blocked, which were free) so the frontend can
+    replay it exactly. `names` maps vertex IDs to display names for the
+    human-readable messages; the algorithm itself only uses IDs.
 
     Returns:
         {
@@ -137,20 +163,40 @@ def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural") -> dict:
           "operations":   {"neighbor_checks": int, "color_checks": int},
         }
 
-    Time: O(V + E + V·C), where C is the number of colors in use. The extra
-    V·C term comes only from listing every available color for the
-    visualization. The coloring decision itself is still O(V + E).
+    Time (natural / largest_first): O(V + E + V·C), where C is the number of
+    colors in use. The V·C term comes only from listing every available color
+    for the visualization; the coloring decision itself is O(V + E).
+    largest_first adds an O(V log V) sort. dsatur adds an O(V) scan per step
+    to find the most saturated vertex: O(V² + E) in total.
     """
+    if strategy not in ORDER_STRATEGIES:
+        raise ValueError(f"Unknown ordering strategy '{strategy}'")
     validate_graph(graph)
-    order = vertex_order(graph, strategy)
+
+    def name(v):
+        return names.get(v, v) if names else v
+
+    position = {vertex: index for index, vertex in enumerate(graph)}
+    static_order = None if strategy == "dsatur" else vertex_order(graph, strategy)
+    uncolored = set(graph)
+    # saturation[v] = distinct colors among v's colored neighbors. Only DSATUR
+    # needs it to choose vertices, but every strategy reports it.
+    saturation: Dict[Hashable, Set[int]] = {v: set() for v in graph}
 
     coloring: Coloring = {}
+    order: List[Hashable] = []
     steps: List[dict] = []
     colors_in_use = 0          # largest color assigned so far (C)
     neighbor_checks = 0        # how many adjacency entries we inspected
     color_checks = 0           # how many candidate colors we tested
 
-    for step_number, vertex in enumerate(order, start=1):
+    for step_number in range(1, len(graph) + 1):
+        # 0. Choose the next vertex.
+        if static_order is not None:
+            vertex = static_order[step_number - 1]
+        else:
+            vertex = most_saturated_vertex(uncolored, saturation, graph, position)
+        selection = _explain_selection(strategy, vertex, graph, saturation, name)
         neighbors = list(graph[vertex])
 
         # 1. Look at every neighbor. The colored ones restrict our choice.
@@ -188,11 +234,18 @@ def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural") -> dict:
 
         coloring[vertex] = assigned_color
         colors_in_use = max(colors_in_use, assigned_color)
+        uncolored.discard(vertex)
+        order.append(vertex)
+        for neighbor in neighbors:
+            if neighbor in uncolored:
+                saturation[neighbor].add(assigned_color)
 
         steps.append({
             "step": step_number,
             "vertex": vertex,
             "degree": len(neighbors),
+            "saturation": len(used_colors),
+            "selection": selection,
             "neighbors": neighbors,
             "neighbor_colors": neighbor_colors,
             "uncolored_neighbors": uncolored_neighbors,
@@ -202,7 +255,7 @@ def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural") -> dict:
             "assigned_color": assigned_color,
             "is_new_color": is_new_color,
             "colors_in_use": colors_in_use,
-            "message": _explain_step(vertex, neighbor_colors, rejected_colors,
+            "message": _explain_step(name(vertex), neighbor_colors, rejected_colors,
                                      assigned_color, is_new_color),
         })
 
@@ -218,17 +271,29 @@ def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural") -> dict:
     }
 
 
-def _explain_step(vertex, neighbor_colors, rejected_colors, assigned_color, is_new_color) -> str:
+def _explain_selection(strategy, vertex, graph, saturation, name) -> str:
+    """One sentence saying why this vertex is colored next."""
+    degree = len(graph[vertex])
+    if strategy == "largest_first":
+        return f"{name(vertex)} is next in Welsh–Powell order (degree {degree})."
+    if strategy == "dsatur":
+        sat = len(saturation[vertex])
+        return (f"{name(vertex)} has the highest saturation: its colored neighbors use "
+                f"{sat} distinct color{'s' if sat != 1 else ''} (ties go to the higher degree, {degree}).")
+    return f"{name(vertex)} is next in dataset order."
+
+
+def _explain_step(vertex_name, neighbor_colors, rejected_colors, assigned_color, is_new_color) -> str:
     """Build a one-sentence, human-readable explanation of a single step."""
     if not neighbor_colors:
-        return (f"No neighbor of {vertex} is colored yet, so the smallest "
+        return (f"No neighbor of {vertex_name} is colored yet, so the smallest "
                 f"color, Color {assigned_color}, is free.")
     blocked = ", ".join(str(c) for c in rejected_colors)
     suffix = " (a new color is introduced)" if is_new_color else ""
     if rejected_colors:
         return (f"Neighbors block Color {blocked}. Smallest available color "
                 f"is {assigned_color}{suffix}.")
-    return (f"Colored neighbors don't use Color 1, so {vertex} takes "
+    return (f"Colored neighbors don't use Color 1, so {vertex_name} takes "
             f"Color {assigned_color}{suffix}.")
 
 

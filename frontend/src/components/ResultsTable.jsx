@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { colorName } from '../utils/helpers';
+import { colorName, nameOf } from '../utils/helpers';
 import ColorChip from './ColorChip';
 
 const COLUMNS = [
@@ -17,7 +17,8 @@ export default function ResultsTable({ result, graph, coloring, conflictVertices
   const rows = useMemo(() => {
     const data = result.steps.map((s) => ({
       order: s.step,
-      region: s.vertex,
+      id: s.vertex,
+      region: nameOf(graph, s.vertex),
       degree: s.degree,
       color: coloring[s.vertex],
       changed: coloring[s.vertex] !== s.assigned_color,
@@ -29,7 +30,7 @@ export default function ResultsTable({ result, graph, coloring, conflictVertices
       const primary = typeof x === 'string' ? x.localeCompare(y) : x - y;
       return (primary || a.order - b.order) * factor;
     });
-  }, [result, coloring, sort]);
+  }, [result, graph, coloring, sort]);
 
   const toggle = (key) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
@@ -55,16 +56,17 @@ export default function ResultsTable({ result, graph, coloring, conflictVertices
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.region} className={conflictVertices.has(r.region) ? 'conflict' : ''}>
+            <tr key={r.id} className={conflictVertices.has(r.id) ? 'conflict' : ''}>
               <td className="muted">{String(r.order).padStart(2, '0')}</td>
               <td>
                 <strong>{r.region}</strong>
-                {graph.labels[r.region] !== r.region && <span className="muted small"> · {graph.labels[r.region]}</span>}
+                {r.id !== r.region && <span className="muted small id-sub">{r.id}</span>}
               </td>
               <td>{r.degree}</td>
               <td className="nowrap">
                 <ColorChip color={r.color} /> Color {r.color} <span className="muted small">({colorName(r.color)})</span>
                 {r.changed && <span className="pill pill-danger">simulated</span>}
+                {conflictVertices.has(r.id) && <span className="pill pill-danger">⚠ conflict</span>}
               </td>
             </tr>
           ))}

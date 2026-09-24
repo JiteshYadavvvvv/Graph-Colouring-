@@ -1,0 +1,81 @@
+import { CalendarClock, Cpu, Factory, GraduationCap, Map as MapIcon, Radio, Wifi } from 'lucide-react';
+
+/**
+ * Real-world problems that are graph coloring in disguise. `example` names a
+ * graph in content/examples.js that can be opened in the Playground.
+ */
+export const APPLICATIONS = [
+  {
+    id: 'maps',
+    icon: MapIcon,
+    title: 'Map coloring',
+    problem: 'Color a political map so that no two neighboring regions look the same.',
+    vertex: 'Region (state, country)',
+    edge: 'The two regions share a border',
+    color: 'Fill color on the map',
+    note: 'This project. Map graphs are planar, so four colors always suffice.',
+  },
+  {
+    id: 'exams',
+    icon: CalendarClock,
+    title: 'Exam timetable scheduling',
+    problem: 'Schedule exams so that no student has two exams at the same time, using as few slots as possible.',
+    vertex: 'Exam',
+    edge: 'Some student takes both exams',
+    color: 'Time slot',
+    note: 'The number of colors is the number of exam slots needed.',
+    example: 'exams',
+  },
+  {
+    id: 'registers',
+    icon: Cpu,
+    title: 'Register allocation',
+    problem: 'A compiler must keep program variables in a small number of CPU registers.',
+    vertex: 'Variable',
+    edge: 'Both variables are needed (live) at the same time',
+    color: 'CPU register',
+    note: 'If more colors are needed than there are registers, some variables are stored in memory instead.',
+    example: 'registers',
+  },
+  {
+    id: 'frequency',
+    icon: Radio,
+    title: 'Frequency assignment',
+    problem: 'Give radio or mobile transmitters frequencies so that nearby transmitters do not interfere.',
+    vertex: 'Transmitter',
+    edge: 'The transmitters are close enough to interfere',
+    color: 'Frequency',
+    note: 'Fewer colors means less spectrum to license.',
+  },
+  {
+    id: 'wireless',
+    icon: Wifi,
+    title: 'Wireless channel allocation',
+    problem: 'Assign Wi-Fi channels to access points in a building so neighbors do not share a channel.',
+    vertex: 'Access point',
+    edge: 'The access points overlap in coverage',
+    color: 'Wi-Fi channel',
+    note: '2.4 GHz Wi-Fi has only three non-overlapping channels, so the question is whether 3 colors are enough.',
+    example: 'channels',
+  },
+  {
+    id: 'jobs',
+    icon: Factory,
+    title: 'Job scheduling',
+    problem: 'Run jobs in rounds when some jobs cannot run together because they need the same machine or resource.',
+    vertex: 'Job',
+    edge: 'The two jobs need the same resource',
+    color: 'Round (time period)',
+    note: 'Each color class is a set of jobs that can safely run in parallel.',
+  },
+  {
+    id: 'courses',
+    icon: GraduationCap,
+    title: 'Course scheduling',
+    problem: 'Place lectures in periods so that no teacher, room or student group is double-booked.',
+    vertex: 'Lecture',
+    edge: 'The lectures share a teacher, room or student group',
+    color: 'Teaching period',
+    note: 'Real timetables add more constraints, but coloring is the core.',
+  },
+];

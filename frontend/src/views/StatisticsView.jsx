@@ -1,16 +1,22 @@
 import { motion } from 'framer-motion';
-import { Activity, Clock, Cpu, GitBranch, Hash, Network, Palette, ShieldAlert } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { runColoring } from '../api/client';
+import { Activity, ArrowRight, Clock, Cpu, GitBranch, Hash, Network, Palette, ShieldAlert, Sigma } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import Button from '../components/Button';
+import ChromaticCard from '../components/ChromaticCard';
+import ColorDistribution from '../components/ColorDistribution';
+import { chromaticText } from '../components/GraphInfoPanel';
 import StatCard from '../components/StatCard';
-import { STRATEGIES } from '../utils/constants';
-import { usedColors } from '../utils/helpers';
+import { strategyInfo } from '../utils/constants';
+import { formatMs, nameOf, usedColors } from '../utils/helpers';
 
 /** Horizontal bar chart of vertex degrees (single series, one hue). */
 function DegreeChart({ graph, coloring }) {
   const [hover, setHover] = useState(null);
   const rows = useMemo(
-    () => [...graph.vertices].sort((a, b) => graph.adjacency[b].length - graph.adjacency[a].length || a.localeCompare(b)),
+    () =>
+      [...graph.vertices].sort(
+        (a, b) => graph.adjacency[b].length - graph.adjacency[a].length || nameOf(graph, a).localeCompare(nameOf(graph, b)),
+      ),
     [graph],
   );
   const max = Math.max(1, graph.statistics.max_degree);
@@ -40,7 +46,7 @@ function DegreeChart({ graph, coloring }) {
             onPointerLeave={() => setHover(null)}
           >
             <span className="degree-name" role="rowheader">
-              {v}
+              {nameOf(graph, v)}
             </span>
             <div className="degree-track" role="cell" aria-label={`degree ${d}`}>
               {ticks.map((t) => (
@@ -59,7 +65,7 @@ function DegreeChart({ graph, coloring }) {
               )}
               {hover === v && (
                 <div className="chart-tip" style={{ left: `${Math.min((d / max) * 100, 70)}%` }}>
-                  <strong>{v}</strong>
+                  <strong>{nameOf(graph, v)}</strong>
                   <span>
                     Degree {d}
                     {coloring[v] ? ` · Color ${coloring[v]}` : ''}
@@ -74,53 +80,32 @@ function DegreeChart({ graph, coloring }) {
   );
 }
 
-/** Runs both vertex orders on the backend and compares how many colors each uses. */
-function OrderComparison({ graph }) {
-  const [state, setState] = useState({ status: 'loading' });
+const COMPLEXITY_ROWS = [
+  {
+    id: 'natural',
+    time: 'O(V + E)',
+    why: 'Each vertex is visited once and each adjacency entry is read once (2E entries). The smallest free color is found within deg(v) + 1 tries.',
+  },
+  {
+    id: 'largest_first',
+    time: 'O(V log V + E)',
+    why: 'Same loop as above, after sorting the vertices by degree once (O(V log V)).',
+  },
+  {
+    id: 'dsatur',
+    time: 'O(V² + E)',
+    why: 'Before every step, all uncolored vertices are scanned to find the most saturated one (O(V) per step, V steps).',
+  },
+];
 
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all(STRATEGIES.map((s) => runColoring(graph.key, s.id)))
-      .then((results) => !cancelled && setState({ status: 'ready', results }))
-      .catch((error) => !cancelled && setState({ status: 'error', error }));
-    return () => {
-      cancelled = true;
-    };
-  }, [graph.key]);
-
-  return (
-    <div className="card">
-      <h3 className="card-title">Does vertex order matter?</h3>
-      <p className="muted small">Both orders were run on the backend for this dataset.</p>
-      {state.status === 'loading' && <p className="muted small">Running both strategies…</p>}
-      {state.status === 'error' && <p className="error-text small">{state.error.message}</p>}
-      {state.status === 'ready' && (
-        <ul className="compare-list">
-          {state.results.map((r) => (
-            <li key={r.strategy}>
-              <span>{r.strategy_label}</span>
-              <strong>
-                {r.colors_used} colors {r.valid ? '✓' : '✗'}
-              </strong>
-            </li>
-          ))}
-          <li className="muted">
-            <span>Greedy upper bound (Δ + 1)</span>
-            <strong>{graph.statistics.greedy_upper_bound}</strong>
-          </li>
-        </ul>
-      )}
-    </div>
-  );
-}
-
-export default function StatisticsView({ cs }) {
+export default function StatisticsView({ cs, navigate }) {
   const { graph, result, coloring, verification, runState } = cs;
   const g = graph.statistics;
   const s = runState === 'done' ? result?.statistics : null;
   const V = g.vertices;
   const E = g.edges;
   const C = s ? s.colors_used : null;
+  const activeStrategy = result?.strategy ?? cs.strategy;
 
   return (
     <div className="page">
@@ -138,46 +123,72 @@ export default function StatisticsView({ cs }) {
       <div className="stat-grid four">
         <StatCard icon={Network} label="Vertices" value={V} hint="V" />
         <StatCard icon={Hash} label="Edges" value={E} hint="E" tone="secondary" delay={0.03} />
-        <StatCard icon={Palette} label="Colors Used" value={s ? usedColors(coloring).length : '—'} hint="C" tone="accent" delay={0.06} />
-        <StatCard icon={ShieldAlert} label="Conflicts" value={verification ? verification.conflicts.length : '—'} hint="From /api/conflicts" tone={verification?.conflicts.length ? 'danger' : 'success'} delay={0.09} />
-        <StatCard icon={GitBranch} label="Maximum Degree" value={g.max_degree} hint="Δ" delay={0.12} />
+        <StatCard icon={Palette} label="Colors Used" value={s ? usedColors(coloring).length : '—'} hint="C, by greedy" tone="accent" delay={0.06} />
+        <StatCard icon={Sigma} label="Minimum Colors" value={chromaticText(graph.chromatic)} hint={graph.chromatic?.exact ? 'χ, exact' : 'χ, bounds only'} delay={0.09} />
+        <StatCard icon={GitBranch} label="Max / Min Degree" value={`${g.max_degree} / ${g.min_degree}`} hint="Δ / δ" delay={0.12} />
         <StatCard icon={Activity} label="Average Degree" value={g.average_degree} hint="2E / V" tone="secondary" delay={0.15} />
-        <StatCard icon={Cpu} label="Algorithm" value="Greedy" hint={s ? result.strategy_label : 'Graph Coloring'} tone="accent" delay={0.18} />
-        <StatCard icon={Clock} label="Time Complexity" value="O(V + E + VC)" hint="Worst case" delay={0.21} />
+        <StatCard icon={ShieldAlert} label="Conflicts" value={verification ? verification.conflicts.length : '—'} hint="From /api/conflicts" tone={verification?.conflicts.length ? 'danger' : 'success'} delay={0.18} />
+        <StatCard icon={Cpu} label="Algorithm" value="Greedy" hint={strategyInfo(activeStrategy).short} tone="accent" delay={0.21} />
       </div>
 
       <div className="viz-layout">
         <div className="viz-main">
           <div className="card complexity">
-            <h3 className="card-title">Greedy Graph Coloring: complexity</h3>
+            <h3 className="card-title">Complexity of this implementation</h3>
             <div className="complexity-grid">
               <div className="complexity-box">
-                <span className="eyebrow">Worst-case time</span>
-                <span className="big-o">O(V + E + VC)</span>
+                <span className="eyebrow">Time (greedy, natural order)</span>
+                <span className="big-o">O(V + E)</span>
               </div>
               <div className="complexity-box">
-                <span className="eyebrow">Space</span>
-                <span className="big-o">O(V + E)</span>
+                <span className="eyebrow">Extra space</span>
+                <span className="big-o">O(V)</span>
               </div>
             </div>
             <ul className="explain-list">
               <li>
                 <strong>V</strong> = number of vertices, <strong>E</strong> = number of edges, <strong>C</strong> = number
-                of colors in use.
+                of colors in use, <strong>Δ</strong> = maximum degree.
               </li>
               <li>
-                <strong>O(V + E)</strong>: every vertex is visited once, and every adjacency-list entry is read once to
-                collect the neighbors’ colors (2E entries in total).
+                <strong>Time O(V + E)</strong>: every vertex is visited once, and every adjacency-list entry is read once
+                to collect the neighbors’ colors (2E entries in total). A vertex with d neighbors can see at most d
+                colors, so the search for the smallest free color stops within d + 1 tries, which adds up to O(V + E).
               </li>
               <li>
-                <strong>O(V · C)</strong>: for each vertex, this implementation also lists every color in the current
-                palette that is still available, so the visualization can show it. The smallest free color is found
-                within deg(v) + 1 tries, so the core decision alone is O(V + E).
+                <strong>Space O(V)</strong>: the color of each vertex, plus a temporary set of at most Δ neighbor
+                colors. The input adjacency list itself takes O(V + E).
               </li>
               <li>
-                <strong>Space O(V + E)</strong>: the adjacency list stores V + 2E entries, and the coloring uses O(V).
+                <strong>What this app runs</strong>: the backend also records every decision so the browser can replay
+                it. Listing each vertex’s available colors adds O(V · C) time, and the recorded trace stores each
+                vertex’s neighbor list, O(V + E) space. The coloring decisions are unchanged.
               </li>
             </ul>
+            <div className="table-scroll">
+              <table className="data-table complexity-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Vertex order</th>
+                    <th scope="col">Time</th>
+                    <th scope="col">Why</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {COMPLEXITY_ROWS.map((row) => (
+                    <tr key={row.id} className={row.id === activeStrategy ? 'selected' : ''}>
+                      <td className="nowrap">
+                        <strong>{strategyInfo(row.id).algorithm}</strong>
+                      </td>
+                      <td className="nowrap">
+                        <code>{row.time}</code>
+                      </td>
+                      <td>{row.why}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             {s && (
               <div className="measured">
                 <span className="eyebrow">Measured on this run</span>
@@ -197,7 +208,7 @@ export default function StatisticsView({ cs }) {
                     </span>
                   </div>
                   <div>
-                    <strong>{s.execution_ms} ms</strong>
+                    <strong>{formatMs(s.execution_ms)}</strong>
                     <span>backend execution time</span>
                   </div>
                 </div>
@@ -213,7 +224,13 @@ export default function StatisticsView({ cs }) {
           </div>
         </div>
         <aside className="viz-side">
-          <OrderComparison graph={graph} />
+          <ChromaticCard graph={graph} colorsUsed={s ? usedColors(coloring).length : null} />
+          {s && (
+            <div className="card">
+              <h3 className="card-title">Color distribution</h3>
+              <ColorDistribution graph={graph} coloring={coloring} order={result.order} />
+            </div>
+          )}
           <div className="card">
             <h3 className="card-title">Bounds on the number of colors</h3>
             <ul className="compare-list">
@@ -222,8 +239,8 @@ export default function StatisticsView({ cs }) {
                 <strong>{g.greedy_upper_bound}</strong>
               </li>
               <li>
-                <span>Minimum degree</span>
-                <strong>{g.min_degree}</strong>
+                <span>Proven lower bound (no fewer colors can work)</span>
+                <strong>{graph.chromatic?.lower_bound}</strong>
               </li>
               {graph.kind === 'map' && (
                 <li>
@@ -232,6 +249,18 @@ export default function StatisticsView({ cs }) {
                 </li>
               )}
             </ul>
+            <Button variant="secondary" size="sm" icon={ArrowRight} onClick={() => navigate('compare')}>
+              Compare algorithms
+            </Button>
+          </div>
+          <div className="card">
+            <h3 className="card-title">
+              <Clock size={16} aria-hidden="true" /> Timing note
+            </h3>
+            <p className="muted small">
+              The execution time is measured on the backend with a high-resolution timer. On graphs this small it is a
+              few microseconds, so network latency, not the algorithm, dominates what you wait for in the browser.
+            </p>
           </div>
         </aside>
       </div>

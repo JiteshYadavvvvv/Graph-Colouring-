@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion';
 import { Check, ChevronsRight, CircleX, LoaderCircle, Play, Table2, Zap } from 'lucide-react';
 import Button from '../components/Button';
-import ColorChip from '../components/ColorChip';
-import Legend from '../components/Legend';
+import ChromaticCard from '../components/ChromaticCard';
+import ColorDistribution from '../components/ColorDistribution';
+import ConflictDemoButtons from '../components/ConflictDemoButtons';
+import CountUp from '../components/CountUp';
+import ExportPanel from '../components/ExportPanel';
 import { EmptyState } from '../components/LoadingState';
 import ResultsTable from '../components/ResultsTable';
-import CountUp from '../components/CountUp';
-import { usedColors } from '../utils/helpers';
+import { formatMs, usedColors } from '../utils/helpers';
 import GraphSVG from '../visualization/GraphSVG';
 import IndiaMapSVG from '../visualization/IndiaMapSVG';
 
@@ -64,13 +66,10 @@ export default function ResultsView({ cs, navigate }) {
   const colorCount = usedColors(coloring).length;
   const conflictCount = verification?.conflicts.length;
   const valid = verification?.valid;
-  const classes = usedColors(coloring).map((c) => ({
-    color: c,
-    members: result.order.filter((v) => coloring[v] === c),
-  }));
+  const st = result.statistics;
 
   const stats = [
-    { label: 'Regions', value: result.steps.length },
+    { label: graph.kind === 'map' ? 'Regions' : 'Vertices', value: result.steps.length },
     { label: 'Colors used', value: colorCount },
     { label: 'Conflicts', value: verifying ? '…' : conflictCount ?? '—', danger: Boolean(conflictCount) },
   ];
@@ -123,13 +122,51 @@ export default function ResultsView({ cs, navigate }) {
         </div>
       </motion.section>
 
-      <p className="muted small results-note">
-        Greedy used {colorCount} color{colorCount === 1 ? '' : 's'}; the Δ + 1 upper bound for this graph is{' '}
-        {graph.statistics.greedy_upper_bound}.
-      </p>
-
       <div className="viz-layout">
         <div className="viz-main">
+          <section className="card analytics" aria-label="Coloring analytics">
+            <div className="card-title-row wrap">
+              <h3 className="card-title">Coloring analytics</h3>
+              <span className="muted small">
+                From the backend run · {result.strategy_label}
+              </span>
+            </div>
+            <dl className="analytics-grid">
+              <div>
+                <dt>Colors used</dt>
+                <dd>{colorCount}</dd>
+              </div>
+              <div className={conflictCount ? 'danger' : ''}>
+                <dt>Conflicts</dt>
+                <dd>{verifying ? '…' : conflictCount ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>Vertices processed</dt>
+                <dd>{result.steps.length}</dd>
+              </div>
+              <div>
+                <dt>Neighbor checks</dt>
+                <dd>{st.neighbor_checks}</dd>
+                <span className="muted small">each edge seen from both ends = 2E</span>
+              </div>
+              <div>
+                <dt>Edges verified</dt>
+                <dd>{verification ? verification.checked_edges : '—'}</dd>
+                <span className="muted small">by POST /api/conflicts</span>
+              </div>
+              <div>
+                <dt>Execution time</dt>
+                <dd>{formatMs(st.execution_ms)}</dd>
+                <span className="muted small">measured on the backend</span>
+              </div>
+            </dl>
+            <h4 className="subhead">Color distribution</h4>
+            <ColorDistribution graph={graph} coloring={coloring} order={result.order} />
+            <p className="muted small">
+              Each color class is an <em>independent set</em>: no two of its members are adjacent. Greedy never
+              exceeds Δ + 1 = {graph.statistics.greedy_upper_bound} colors on this graph.
+            </p>
+          </section>
           <div className="card">
             <div className="card-title-row">
               <h3 className="card-title">Assigned colors</h3>
@@ -144,24 +181,18 @@ export default function ResultsView({ cs, navigate }) {
             {graph.kind === 'map' ? (
               <IndiaMapSVG graph={graph} coloring={coloring} conflicts={cs.conflicts} interactive={false} />
             ) : (
-              <GraphSVG key={graph.key} graph={graph} coloring={coloring} conflicts={cs.conflicts} draggable={false} />
+              <GraphSVG key={graph.key} graph={graph} coloring={coloring} conflicts={cs.conflicts} draggable={false} interactive={false} />
             )}
           </div>
+          <ChromaticCard graph={graph} colorsUsed={colorCount} />
           <div className="card">
-            <h3 className="card-title">Color classes</h3>
+            <h3 className="card-title">Conflict demo</h3>
             <p className="muted small">
-              Each color class is an <em>independent set</em>: no two of its members are adjacent.
+              Break the coloring on purpose and let the backend detector find the problem, then fix it again.
             </p>
-            <ul className="class-list">
-              {classes.map(({ color, members }) => (
-                <li key={color}>
-                  <ColorChip color={color} />
-                  <span>{members.join(', ')}</span>
-                </li>
-              ))}
-            </ul>
+            <ConflictDemoButtons cs={cs} size="sm" />
           </div>
-          <Legend coloring={coloring} showStates={false} />
+          <ExportPanel cs={cs} />
         </aside>
       </div>
     </div>

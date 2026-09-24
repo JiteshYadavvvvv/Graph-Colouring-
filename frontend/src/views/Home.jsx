@@ -1,7 +1,15 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, BookOpen, GitBranch, Palette, Play, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, Database, GitBranch, GraduationCap, Palette, PencilRuler, Play, Scale, ShieldCheck } from 'lucide-react';
 import Button from '../components/Button';
+import StatusIndicators from '../components/StatusIndicators';
 import { PALETTE } from '../utils/constants';
+
+const EXPLORE = [
+  { view: 'datasets', icon: Database, title: 'Datasets', text: 'India, a wheel, K3, C7, K5 and a bipartite crown graph.' },
+  { view: 'playground', icon: PencilRuler, title: 'Graph Playground', text: 'Draw your own graph and color it on the backend.' },
+  { view: 'compare', icon: Scale, title: 'Compare algorithms', text: 'Greedy vs. Welsh–Powell vs. DSATUR on the same graph.' },
+  { view: 'viva', icon: GraduationCap, title: 'Viva Mode', text: 'Examiner questions with answers, plus a quiz.' },
+];
 
 const STEPS = [
   { n: '01', icon: GitBranch, title: 'Model the Map', text: 'Regions become vertices and shared borders become edges.' },
@@ -94,13 +102,13 @@ export default function Home({ cs, navigate }) {
       <section className="hero">
         <div className="hero-text">
           <motion.span className="eyebrow" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            DSA Project · Graph Theory
+            Graph Coloring Visualizer · DSA Project
           </motion.span>
           <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             Interactive Map Coloring System
           </motion.h1>
           <motion.p className="hero-tagline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-            See Graph Theory Come Alive.
+            Visualize how graph coloring transforms geographical constraints into a mathematical problem.
           </motion.p>
           <motion.p className="hero-desc" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
             Every state of India becomes a <strong>vertex</strong>, and every shared border becomes an{' '}
@@ -116,6 +124,7 @@ export default function Home({ cs, navigate }) {
               How It Works
             </Button>
           </div>
+          <StatusIndicators cs={cs} className="hero-status" />
         </div>
         <div className="hero-visual">
           <HeroArt />
@@ -147,26 +156,48 @@ export default function Home({ cs, navigate }) {
         ))}
       </section>
 
+      <section className="explore-grid" aria-label="Explore">
+        {EXPLORE.map(({ view, icon: Icon, title, text }, i) => (
+          <motion.button
+            key={view}
+            type="button"
+            className="card explore-card"
+            onClick={() => navigate(view)}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 + i * 0.06 }}
+            whileHover={{ y: -3 }}
+          >
+            <Icon size={20} aria-hidden="true" />
+            <strong>{title}</strong>
+            <span className="muted small">{text}</span>
+            <ArrowRight size={16} className="explore-arrow" aria-hidden="true" />
+          </motion.button>
+        ))}
+      </section>
+
       <section className="card dataset-strip">
         <div>
           <span className="eyebrow">Available datasets</span>
-          <p className="muted small">Both datasets run through the same algorithm on the backend.</p>
+          <p className="muted small">Every dataset runs through the same algorithm on the backend.</p>
         </div>
-        <div className="dataset-options">
+        <div className="dataset-chips">
           {datasets.map((d) => (
             <button
               key={d.key}
-              className={`dataset-option ${graph.key === d.key ? 'active' : ''}`}
+              className={`dataset-chip ${graph.key === d.key ? 'active' : ''}`}
               onClick={() => cs.changeDataset(d.key)}
               aria-pressed={graph.key === d.key}
             >
               <strong>{d.name}</strong>
               <span>
-                {d.vertices} vertices · {d.edges} edges
+                V {d.vertices} · E {d.edges}
               </span>
-              <span className="muted small">{d.description}</span>
             </button>
           ))}
+          <Button variant="ghost" size="sm" icon={ArrowRight} onClick={() => navigate('datasets')}>
+            All datasets
+          </Button>
         </div>
       </section>
     </div>
