@@ -1,14 +1,14 @@
 import AdjacencyTable from '../components/AdjacencyTable';
 import AlgorithmTimeline from '../components/AlgorithmTimeline';
 import ColoringControls, { ShortcutHint } from '../components/ColoringControls';
+import { InlineConflicts } from '../components/ConflictBanner';
 import GraphInfoPanel from '../components/GraphInfoPanel';
-import Legend from '../components/Legend';
+import Legend, { legendPulse } from '../components/Legend';
 import StepPanel from '../components/StepPanel';
 import Toggle from '../components/Toggle';
 import VertexCard from '../components/VertexCard';
 import { useShortcuts } from '../hooks/useShortcuts';
 import GraphSVG from '../visualization/GraphSVG';
-import { InlineConflicts, legendPulse } from './MapView';
 
 export default function GraphView({ cs }) {
   useShortcuts(cs);

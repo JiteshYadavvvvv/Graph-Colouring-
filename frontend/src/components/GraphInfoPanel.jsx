@@ -2,27 +2,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { CircleCheck, CircleDashed, LoaderCircle, TriangleAlert } from 'lucide-react';
 import { strategyInfo } from '../utils/constants';
 import { nameOf, usedColors } from '../utils/helpers';
+import { chromaticText, coloringStatus } from '../utils/status';
 
-/** Verdict on the coloring, from the run state and POST /api/conflicts. */
-export function coloringStatus(cs) {
-  const { runState, verification, verifying, completedSteps, totalSteps } = cs;
-  if (runState === 'idle') return { tone: 'neutral', icon: CircleDashed, text: 'Not colored yet' };
-  if (runState === 'requesting') return { tone: 'info', icon: LoaderCircle, text: 'Running…', spin: true };
-  if (runState === 'playing' || runState === 'paused') {
-    return { tone: 'info', icon: LoaderCircle, text: `Coloring ${completedSteps}/${totalSteps}`, spin: runState === 'playing' };
-  }
-  if (verifying) return { tone: 'info', icon: LoaderCircle, text: 'Verifying…', spin: true };
-  if (!verification) return { tone: 'neutral', icon: CircleDashed, text: 'Not verified' };
-  if (verification.valid) return { tone: 'success', icon: CircleCheck, text: 'Valid' };
-  return { tone: 'danger', icon: TriangleAlert, text: 'Invalid: conflicts found' };
-}
-
-/** "4 (exact)" or "3–4 (bounds only)". */
-export function chromaticText(chromatic) {
-  if (!chromatic) return '—';
-  if (chromatic.value !== null && chromatic.value !== undefined) return String(chromatic.value);
-  return `${chromatic.lower_bound}–${chromatic.upper_bound}`;
-}
+const STATUS_ICONS = { neutral: CircleDashed, info: LoaderCircle, success: CircleCheck, danger: TriangleAlert };
 
 function Value({ children }) {
   return (
@@ -49,7 +31,7 @@ export default function GraphInfoPanel({ cs, title = 'Graph statistics' }) {
   const s = graph.statistics;
   const hubs = graph.vertices.filter((v) => graph.adjacency[v].length === s.max_degree);
   const status = coloringStatus(cs);
-  const StatusIcon = status.icon;
+  const StatusIcon = STATUS_ICONS[status.tone];
   const colored = usedColors(coloring).length;
   const colorsUsed =
     runState === 'done' ? colored : runState === 'playing' || runState === 'paused' ? `${colored} so far` : '—';
@@ -73,7 +55,7 @@ export default function GraphInfoPanel({ cs, title = 'Graph statistics' }) {
       <div className="card-title-row">
         <h3 className="card-title">{title}</h3>
         <span className={`status-badge tone-${status.tone}`} role="status">
-          <StatusIcon size={14} className={status.spin ? 'spin' : ''} aria-hidden="true" />
+          <StatusIcon size={14} className={status.busy ? 'spin' : ''} aria-hidden="true" />
           {status.text}
         </span>
       </div>

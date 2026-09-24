@@ -10,6 +10,13 @@ const STATES = [
   { label: 'Next vertex (dashed)', swatch: { background: '#fff', border: '2px dashed #8391AD' } },
 ];
 
+/** Legend emphasis for the step being replayed: flash a reused color. */
+export function legendPulse(cs) {
+  const step = cs.activeStep;
+  if (!step || cs.cursor.phase !== 3 || step.is_new_color) return null;
+  return { color: step.assigned_color, key: step.step };
+}
+
 /**
  * Shows only the colors actually used, with how many vertices use each.
  * `pulse` ({ color, key }) briefly emphasizes an entry when the algorithm

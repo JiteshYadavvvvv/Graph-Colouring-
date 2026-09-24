@@ -6,6 +6,7 @@ import Button from './components/Button';
 import LoadingState, { EmptyState, ErrorState } from './components/LoadingState';
 import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
+import SiteFooter from './components/SiteFooter';
 import { useColoring } from './hooks/useColoring';
 import { usePlayground } from './hooks/usePlayground';
 import { DEFAULT_DATASET, VIEWS } from './utils/constants';
@@ -168,6 +169,7 @@ export default function App() {
                 {content}
               </motion.div>
             </AnimatePresence>
+            <SiteFooter />
           </main>
         </div>
       </div>

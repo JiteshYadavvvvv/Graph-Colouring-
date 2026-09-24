@@ -92,3 +92,14 @@ export default function ConflictBanner({ graph, verification, verifying }) {
     </AnimatePresence>
   );
 }
+
+/**
+ * The banner for the algorithm pages: shown only when there is something to
+ * report (a conflict, or a check in progress after a simulated conflict), so
+ * conflicts are announced where the user is looking.
+ */
+export function InlineConflicts({ cs }) {
+  const hasConflicts = Boolean(cs.verification?.conflicts.length);
+  if (!hasConflicts && !(cs.verifying && cs.simulated)) return null;
+  return <ConflictBanner graph={cs.graph} verification={cs.verification} verifying={cs.verifying} />;
+}

@@ -39,8 +39,13 @@ from models.schemas import (
 )
 
 app = FastAPI(
-    title="Interactive Map Coloring API",
-    description="Greedy graph coloring engine with step-by-step execution traces.",
+    title="Interactive Map Coloring System API",
+    description=(
+        "Graph Coloring • DSA Visualization • Educational Computing. "
+        "The coloring engine of the Interactive Map Coloring System: graph datasets, "
+        "greedy graph coloring with step-by-step execution traces, conflict detection, "
+        "algorithm comparison and chromatic-number computation."
+    ),
     version="2.0.0",
 )
 

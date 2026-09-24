@@ -1,8 +1,12 @@
-# Interactive Map Coloring System Using Graph Coloring
+# Interactive Map Coloring System
 
-**Graph Coloring Visualizer.** Visualize how graph coloring transforms geographical constraints into a mathematical problem.
+**Graph Coloring • DSA Visualization • Educational Computing**
 
-The states of India become the **vertices** of a graph and their shared borders become **edges**. A hand-written **Greedy Graph Coloring** algorithm, running in Python on a FastAPI backend, colors the graph and records every decision it makes. The React frontend replays those recorded decisions on a real map of India and on a node-link graph, one phase at a time, so you watch the algorithm's actual reasoning rather than a scripted animation.
+*Department of Computer Engineering, Army Institute of Technology, Pune*
+
+An interactive graph-coloring platform that transforms geographical regions into mathematical graphs and visually demonstrates graph-coloring algorithms.
+
+Map coloring and graph coloring are classical problems in graph theory; this project is an educational implementation of them. The states of India become the **vertices** of a graph and their shared borders become **edges**. A hand-written **Greedy Graph Coloring** algorithm, running in Python on a FastAPI backend, colors the graph and records every decision it makes. The React frontend replays those recorded decisions on a real map of India and on a node-link graph, one phase at a time, so you watch the algorithm's actual reasoning rather than a scripted animation.
 
 ```
 Region  → Vertex
@@ -36,6 +40,7 @@ Color   → Label assigned to a vertex (1, 2, 3, …)
 18. [Screenshots](#18-screenshots)
 19. [Viva Questions](#19-viva-questions)
 20. [Future Scope](#20-future-scope)
+21. [References and Credits](#21-references-and-credits)
 
 ---
 
@@ -43,7 +48,13 @@ Color   → Label assigned to a vertex (1, 2, 3, …)
 
 **Map coloring** asks for a color for each region of a map so that no two regions sharing a border get the same color. If each region is a *vertex* and each shared border is an *edge*, map coloring becomes **graph vertex coloring**, one of the classic problems of graph theory.
 
-This project:
+The underlying problems are well known; this project's contribution is the implementation and its integration:
+
+* interactive geographical visualization, graph representation, and backend algorithm execution;
+* step-by-step visualization, conflict detection, and map/graph synchronization;
+* an educational Viva Mode, multiple graph datasets, and an offline-capable architecture.
+
+Concretely, the system:
 
 * stores **31 Indian regions** (28 states plus Jammu and Kashmir, Ladakh and Delhi; **60 shared land borders**) as an adjacency list on the backend, with a stable ID per region (`IN-MH`, `IN-GJ`, …);
 * provides five textbook graphs (wheel, triangle K3, cycle C7, complete K5, bipartite crown graph) and a **Graph Playground** for building custom graphs;
@@ -386,7 +397,7 @@ Execution times are the fastest of several batches of repeated runs (timeit-styl
 
 ```
 frontend/src/
-├── App.jsx                  layout, hash navigation, page transitions, error/loading states
+├── App.jsx                  layout, hash navigation, page transitions, error/loading states, footer
 ├── api/client.js            the only module that calls fetch: base URL, timeouts,
 │                            friendly error messages, response-shape checks, GET cache
 ├── hooks/
@@ -405,9 +416,12 @@ frontend/src/
 │                            ChromaticCard, ExportMenu, ExportPanel, StatusIndicators, …
 ├── views/                   Home, Datasets, Map, Graph, Playground, Results, Conflicts,
 │                            Statistics, Compare, HowItWorks, Applications, Viva
-├── content/                 viva questions, quiz, applications, Playground examples
+├── content/                 identity (name, subtitle, institution, credits), learning material,
+│                            viva questions and quiz, applications, Playground examples
+├── assets/branding/         optional institute logo (see the README in that folder)
 ├── data/indiaGeometry.js    generated state boundaries (SVG paths, label anchors)
-├── utils/                   constants (palette, phases, speeds), helpers, export builders
+├── utils/                   constants (palette, phases, speeds), replay (cursor → coloring and
+│                            highlight), status summaries, helpers, export builders
 └── styles/                  variables.css (tokens), globals.css, features.css, animations.css
 ```
 
@@ -526,3 +540,17 @@ Current limitations:
 * Custom graphs live in the browser session only and are limited to 60 vertices (30 in the Playground editor).
 * The exact chromatic number is only guaranteed within the search budget; beyond it the app shows proven bounds.
 * Dragged node positions reset when the page reloads or the dataset changes.
+
+## 21. References and Credits
+
+This project implements and visualizes well-known results; it does not claim them as its own.
+
+* **Graph coloring and the Four Color Theorem.** K. Appel and W. Haken, "Every planar map is four colorable", *Illinois Journal of Mathematics*, 21 (1977).
+* **Welsh–Powell.** D. J. A. Welsh and M. B. Powell, "An upper bound for the chromatic number of a graph and its application to timetabling problems", *The Computer Journal*, 10(1), 1967.
+* **DSATUR.** D. Brélaz, "New methods to color the vertices of a graph", *Communications of the ACM*, 22(4), 1979.
+* **NP-completeness of graph coloring.** R. M. Karp, "Reducibility among combinatorial problems", 1972; M. R. Garey and D. S. Johnson, *Computers and Intractability*, 1979.
+* **Map data.** State boundaries are derived from the district-level GeoJSON of [udit-001/india-maps-data](https://github.com/udit-001/india-maps-data), processed offline by `tools/build_india_map.py`. The app never loads map data at runtime.
+* **Libraries.** React, Vite, Framer Motion and Lucide icons (frontend); FastAPI, Pydantic and Uvicorn (backend).
+
+Developed as an academic project in the Department of Computer Engineering, Army Institute of Technology, Pune.
+

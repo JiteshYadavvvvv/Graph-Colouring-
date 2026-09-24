@@ -1,4 +1,5 @@
 import { GraduationCap, RotateCcw } from 'lucide-react';
+import { INSTITUTION, PROJECT } from '../content/identity';
 import { CUSTOM_DATASET } from '../utils/constants';
 import Button from './Button';
 import ExportMenu from './ExportMenu';
@@ -29,9 +30,10 @@ export default function Navbar({ cs, onNavigate }) {
         }}
       >
         <Logo />
-        <div>
-          <div className="brand-title">Interactive Map Coloring System</div>
-          <div className="brand-sub">Graph Coloring Visualizer</div>
+        <div className="brand-text">
+          <div className="brand-institute">{INSTITUTION.name}</div>
+          <div className="brand-title">{PROJECT.name}</div>
+          <div className="brand-sub">{PROJECT.subtitle}</div>
         </div>
       </a>
 

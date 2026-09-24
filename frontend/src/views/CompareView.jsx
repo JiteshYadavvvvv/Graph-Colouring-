@@ -3,10 +3,9 @@ import { CircleCheck, CircleX, Play, Scale } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { compareAlgorithms } from '../api/client';
 import Button from '../components/Button';
-import { chromaticText } from '../components/GraphInfoPanel';
+import { chromaticText } from '../utils/status';
 import LoadingState, { ErrorState } from '../components/LoadingState';
-import { CUSTOM_DATASET } from '../utils/constants';
-import { formatMs, nameOf } from '../utils/helpers';
+import { formatMs, graphSource, nameOf } from '../utils/helpers';
 
 const EXPLANATIONS = {
   greedy: 'Colors the vertices in the order they are listed. Fast and simple, but the result depends entirely on that order.',
@@ -61,8 +60,7 @@ export default function CompareView({ cs, navigate }) {
   useEffect(() => {
     let cancelled = false;
     setState({ status: 'loading' });
-    const source = graph.key === CUSTOM_DATASET ? { graph: graph.adjacency, names: graph.names } : { dataset: graph.key };
-    compareAlgorithms(source)
+    compareAlgorithms(graphSource(graph))
       .then((data) => !cancelled && setState({ status: 'ready', data }))
       .catch((error) => !cancelled && setState({ status: 'error', error }));
     return () => {

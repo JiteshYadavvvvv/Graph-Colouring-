@@ -170,16 +170,6 @@ a.brand {
   margin-top: 18px;
 }
 
-.hero-status .indicator {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: #e3e9ff;
-}
-
-.hero-status .indicator.tone-down {
-  background: rgba(229, 72, 77, 0.22);
-  color: #ffd9da;
-}
 
 .export-menu {
   position: relative;
@@ -830,42 +820,6 @@ a.brand {
 }
 
 /* ============ Home ============ */
-.explore-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.explore-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  text-align: left;
-  font: inherit;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.explore-card > svg:first-child {
-  margin-bottom: 4px;
-  color: var(--primary);
-}
-
-.explore-arrow {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  color: var(--muted);
-  transition: transform 0.15s, color 0.15s;
-}
-
-.explore-card:hover .explore-arrow {
-  transform: translateX(3px);
-  color: var(--primary);
-}
-
 .dataset-chips {
   display: flex;
   flex-wrap: wrap;
@@ -1458,8 +1412,7 @@ a.brand {
 }
 
 @media (max-width: 1280px) {
-  .concepts,
-  .explore-grid {
+  .concepts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -1526,7 +1479,6 @@ a.brand {
 
 @media (max-width: 600px) {
   .concepts,
-  .explore-grid,
   .analytics-grid,
   .chromatic-compare {
     grid-template-columns: minmax(0, 1fr);
@@ -1651,5 +1603,168 @@ a.brand {
 
   .editor-empty {
     font-size: 24px;
+  }
+}
+
+/* ============ Identity & branding ============ */
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.brand-institute {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.navbar .brand-sub {
+  display: none;
+  font-size: 0.72rem;
+}
+
+@media (min-width: 1600px) {
+  .navbar .brand-sub {
+    display: block;
+  }
+}
+
+@media (max-width: 600px) {
+  .brand-institute {
+    display: none;
+  }
+}
+
+.institute-logo {
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.institution {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.institution-name {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.institution-dept {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.highlights .section-title {
+  margin: 0;
+}
+
+.highlights .card-title-row > .muted {
+  max-width: 560px;
+}
+
+.highlight-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 24px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.highlight-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.highlight-mark {
+  flex-shrink: 0;
+  margin-top: 4px;
+  color: var(--success);
+}
+
+.highlight-list strong,
+.highlight-link {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.highlight-link {
+  gap: 5px;
+  padding: 0;
+  margin-bottom: 2px;
+}
+
+.highlight-link svg {
+  color: var(--muted);
+}
+
+.highlight-link:hover svg {
+  color: var(--primary);
+}
+
+.site-footer {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr);
+  gap: 16px 32px;
+  max-width: 1480px;
+  margin: 40px auto 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.footer-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-identity > div {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-identity strong {
+  color: var(--text-2);
+}
+
+.footer-credits p + p {
+  margin-top: 4px;
+}
+
+@media (max-width: 1100px) {
+  .highlight-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .site-footer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .highlight-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

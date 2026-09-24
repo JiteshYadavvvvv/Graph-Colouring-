@@ -1,4 +1,4 @@
-import { coloringStatus } from './GraphInfoPanel';
+import { coloringStatus } from '../utils/status';
 
 const ENGINE = {
   checking: { tone: 'pending', text: 'Connecting to backend…', short: 'Connecting…' },

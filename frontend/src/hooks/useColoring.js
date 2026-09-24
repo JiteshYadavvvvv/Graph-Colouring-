@@ -8,21 +8,8 @@ import {
   phaseDuration,
   speedMs,
 } from '../utils/constants';
-import { coloringAtCursor, edgeKey } from '../utils/helpers';
-
-const START = { step: -1, phase: 0 };
-
-function nextCursor(cursor, totalSteps) {
-  if (cursor.phase < LAST_PHASE) return { step: cursor.step, phase: cursor.phase + 1 };
-  if (cursor.step + 1 < totalSteps) return { step: cursor.step + 1, phase: 0 };
-  return null; // finished
-}
-
-function previousCursor(cursor) {
-  if (cursor.phase > 0) return { step: cursor.step, phase: cursor.phase - 1 };
-  if (cursor.step > 0) return { step: cursor.step - 1, phase: LAST_PHASE };
-  return null; // already at the very first phase
-}
+import { edgeKey, graphSource } from '../utils/helpers';
+import { NO_HIGHLIGHT, START, coloringAtCursor, highlightAt, nextCursor, previousCursor } from '../utils/replay';
 
 /**
  * All application state lives here: the graph loaded from the backend (a
@@ -135,9 +122,7 @@ export function useColoring() {
   const retryLoad = useCallback(() => setReloadToken((t) => t + 1), []);
 
   // What the backend should color: a dataset key, or the custom graph itself.
-  const sourceFor = (g) =>
-    g?.key === CUSTOM_DATASET ? { graph: g.adjacency, names: g.names } : { dataset: g?.key ?? datasetKey };
-  const source = useMemo(() => sourceFor(graph), [graph, datasetKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  const source = useMemo(() => (graph ? graphSource(graph) : { dataset: datasetKey }), [graph, datasetKey]);
 
   // ---- Verification (POST /api/conflicts) ----
   const verify = useCallback(
@@ -165,7 +150,7 @@ export function useColoring() {
     async (mode = 'animate', options = {}) => {
       const gen = ++generation.current;
       const useStrategy = options.strategy ?? strategy;
-      const from = options.graph ? sourceFor(options.graph) : source;
+      const from = options.graph ? graphSource(options.graph) : source;
       setRunState('requesting');
       setResult(null);
       setCursor(START);
@@ -196,7 +181,7 @@ export function useColoring() {
         setActionError({ message: error.message, retry: () => run(mode, options) });
       }
     },
-    [strategy, source, verify], // eslint-disable-line react-hooks/exhaustive-deps
+    [strategy, source, verify],
   );
 
   const setStrategy = useCallback(
@@ -333,24 +318,10 @@ export function useColoring() {
 
   // One highlight object is shared by the map, the graph, and the panels, so
   // every view always agrees on the current vertex and its neighbors.
-  //   active     vertex being processed (none in the "move to next" phase)
-  //   neighbors  neighbors being checked
-  //   recent     most recently colored vertex (its halo fades out)
-  //   next       vertex the loop moves to (only in the "move to next" phase)
-  const highlight = useMemo(() => {
-    if (!animating || !result || !activeStep) {
-      return { running: false, active: null, neighbors: new Set(), phase: 0, recent: null, next: null };
-    }
-    const advancing = cursor.phase === LAST_PHASE;
-    return {
-      running: true,
-      active: advancing ? null : activeStep.vertex,
-      neighbors: new Set(cursor.phase >= 1 && !advancing ? activeStep.neighbors : []),
-      phase: cursor.phase,
-      recent: cursor.phase >= 3 ? activeStep.vertex : result.steps[cursor.step - 1]?.vertex ?? null,
-      next: advancing ? result.steps[cursor.step + 1]?.vertex ?? null : null,
-    };
-  }, [activeStep, animating, result, cursor]);
+  const highlight = useMemo(
+    () => (animating && result ? highlightAt(result.steps, cursor) : NO_HIGHLIGHT),
+    [animating, result, cursor],
+  );
 
   const conflicts = useMemo(
     () => ({

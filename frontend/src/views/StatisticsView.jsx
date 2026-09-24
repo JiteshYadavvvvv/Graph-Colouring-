@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import Button from '../components/Button';
 import ChromaticCard from '../components/ChromaticCard';
 import ColorDistribution from '../components/ColorDistribution';
-import { chromaticText } from '../components/GraphInfoPanel';
+import { chromaticText } from '../utils/status';
 import StatCard from '../components/StatCard';
 import { strategyInfo } from '../utils/constants';
 import { formatMs, nameOf, usedColors } from '../utils/helpers';
@@ -258,8 +258,9 @@ export default function StatisticsView({ cs, navigate }) {
               <Clock size={16} aria-hidden="true" /> Timing note
             </h3>
             <p className="muted small">
-              The execution time is measured on the backend with a high-resolution timer. On graphs this small it is a
-              few microseconds, so network latency, not the algorithm, dominates what you wait for in the browser.
+              The execution time is measured on the backend with a high-resolution timer around the algorithm only.
+              On graphs this small it is far shorter than the network round trip, so it varies from run to run and
+              does not reflect what you wait for in the browser.
             </p>
           </div>
         </aside>

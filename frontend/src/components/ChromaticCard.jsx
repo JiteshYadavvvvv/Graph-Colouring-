@@ -1,5 +1,5 @@
 import { Sigma } from 'lucide-react';
-import { chromaticText } from './GraphInfoPanel';
+import { chromaticText } from '../utils/status';
 
 /**
  * Keeps two numbers apart: the colors the greedy algorithm PRODUCED, and the

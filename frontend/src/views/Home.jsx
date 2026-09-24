@@ -1,15 +1,10 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, BookOpen, Database, GitBranch, GraduationCap, Palette, PencilRuler, Play, Scale, ShieldCheck } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, GitBranch, Palette, Play, ShieldCheck } from 'lucide-react';
 import Button from '../components/Button';
+import InstituteLogo from '../components/InstituteLogo';
 import StatusIndicators from '../components/StatusIndicators';
+import { HIGHLIGHTS, INSTITUTION, PROJECT } from '../content/identity';
 import { PALETTE } from '../utils/constants';
-
-const EXPLORE = [
-  { view: 'datasets', icon: Database, title: 'Datasets', text: 'India, a wheel, K3, C7, K5 and a bipartite crown graph.' },
-  { view: 'playground', icon: PencilRuler, title: 'Graph Playground', text: 'Draw your own graph and color it on the backend.' },
-  { view: 'compare', icon: Scale, title: 'Compare algorithms', text: 'Greedy vs. Welsh–Powell vs. DSATUR on the same graph.' },
-  { view: 'viva', icon: GraduationCap, title: 'Viva Mode', text: 'Examiner questions with answers, plus a quiz.' },
-];
 
 const STEPS = [
   { n: '01', icon: GitBranch, title: 'Model the Map', text: 'Regions become vertices and shared borders become edges.' },
@@ -99,22 +94,28 @@ export default function Home({ cs, navigate }) {
 
   return (
     <div className="page">
-      <section className="hero">
+      <section className="hero" aria-labelledby="hero-title">
         <div className="hero-text">
-          <motion.span className="eyebrow" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            Graph Coloring Visualizer · DSA Project
-          </motion.span>
-          <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-            Interactive Map Coloring System
+          <motion.div className="institution" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <InstituteLogo height={52} />
+            <div>
+              <div className="institution-name">{INSTITUTION.name}</div>
+              <div className="institution-dept">{INSTITUTION.department}</div>
+            </div>
+          </motion.div>
+          <motion.h1 id="hero-title" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+            {PROJECT.name}
           </motion.h1>
-          <motion.p className="hero-tagline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
-            Visualize how graph coloring transforms geographical constraints into a mathematical problem.
+          <motion.p className="hero-tagline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            {PROJECT.subtitle}
           </motion.p>
-          <motion.p className="hero-desc" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}>
-            Every state of India becomes a <strong>vertex</strong>, and every shared border becomes an{' '}
-            <strong>edge</strong>. A <strong>Greedy Graph Coloring</strong> algorithm, running in Python, then gives
-            each state the smallest color its neighbors are not using, so no two neighboring states ever look the
-            same. You watch each of its decisions, step by step.
+          <motion.p className="hero-desc" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+            {PROJECT.description}
+          </motion.p>
+          <motion.p className="hero-note" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+            Every state of India becomes a <strong>vertex</strong> and every shared border an <strong>edge</strong>. A
+            greedy coloring algorithm, running in Python on the backend, gives each state the smallest color its
+            neighbors are not using, and every one of its decisions can be replayed step by step.
           </motion.p>
           <div className="hero-actions">
             <Button icon={Play} size="lg" onClick={startColoring}>
@@ -144,7 +145,6 @@ export default function Home({ cs, navigate }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 + i * 0.1 }}
-            whileHover={{ y: -4 }}
           >
             <div className="step-card-top">
               <span className="step-num">{n}</span>
@@ -156,24 +156,32 @@ export default function Home({ cs, navigate }) {
         ))}
       </section>
 
-      <section className="explore-grid" aria-label="Explore">
-        {EXPLORE.map(({ view, icon: Icon, title, text }, i) => (
-          <motion.button
-            key={view}
-            type="button"
-            className="card explore-card"
-            onClick={() => navigate(view)}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + i * 0.06 }}
-            whileHover={{ y: -3 }}
-          >
-            <Icon size={20} aria-hidden="true" />
-            <strong>{title}</strong>
-            <span className="muted small">{text}</span>
-            <ArrowRight size={16} className="explore-arrow" aria-hidden="true" />
-          </motion.button>
-        ))}
+      <section className="card highlights" aria-labelledby="highlights-title">
+        <div className="card-title-row wrap">
+          <h2 id="highlights-title" className="section-title">What this project implements</h2>
+          <span className="muted small">
+            Map coloring and graph coloring are classical problems in graph theory. This project is an educational
+            implementation that brings them together in one interactive system.
+          </span>
+        </div>
+        <ul className="highlight-list">
+          {HIGHLIGHTS.map((item) => (
+            <li key={item.title}>
+              <Check size={16} className="highlight-mark" aria-hidden="true" />
+              <div>
+                {item.view ? (
+                  <button type="button" className="link-btn highlight-link" onClick={() => navigate(item.view)}>
+                    {item.title}
+                    <ArrowRight size={13} aria-hidden="true" />
+                  </button>
+                ) : (
+                  <strong>{item.title}</strong>
+                )}
+                <p className="muted small">{item.text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="card dataset-strip">

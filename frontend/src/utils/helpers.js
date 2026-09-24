@@ -1,4 +1,4 @@
-import { PALETTE } from './constants';
+import { CUSTOM_DATASET, PALETTE } from './constants';
 
 /** Fill color for backend color number k (1-based). Generates extra hues if needed. */
 export function colorFill(k) {
@@ -33,18 +33,11 @@ export function edgeKey(u, v) {
 }
 
 /**
- * Rebuild the coloring that is visible at a given playback position, using
- * ONLY the colors the backend assigned in its steps. Nothing is invented here.
+ * What to send the backend for a loaded graph: its dataset key, or, for a
+ * Playground graph, the adjacency list itself (the server keeps no state).
  */
-export function coloringAtCursor(steps, cursor) {
-  const coloring = {};
-  if (!steps || cursor.step < 0) return coloring;
-  for (let i = 0; i < cursor.step; i += 1) {
-    coloring[steps[i].vertex] = steps[i].assigned_color;
-  }
-  const current = steps[cursor.step];
-  if (current && cursor.phase >= 3) coloring[current.vertex] = current.assigned_color;
-  return coloring;
+export function graphSource(graph) {
+  return graph.key === CUSTOM_DATASET ? { graph: graph.adjacency, names: graph.names } : { dataset: graph.key };
 }
 
 /** Sorted list of the distinct color numbers used in a coloring. */
