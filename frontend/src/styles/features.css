@@ -31,11 +31,11 @@
 }
 
 .ok-text {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .danger-text {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .subhead {
@@ -314,7 +314,7 @@ a.brand {
 .advance-note svg {
   margin-top: 3px;
   flex-shrink: 0;
-  color: var(--secondary);
+  color: var(--secondary-text);
 }
 
 /* ============ Graph statistics panel ============ */
@@ -362,7 +362,7 @@ a.brand {
 }
 
 .info-grid > div.danger dd {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .status-badge {
@@ -380,12 +380,12 @@ a.brand {
 
 .status-badge.tone-success {
   background: var(--success-50);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .status-badge.tone-danger {
   background: var(--danger-50);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .status-badge.tone-info {
@@ -429,7 +429,7 @@ a.brand {
   padding: 8px 10px;
   border-radius: 9px;
   background: var(--danger-50);
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: 0.84rem;
   font-weight: 650;
 }
@@ -485,13 +485,19 @@ a.brand {
   font-weight: 750;
 }
 
+.analytics-grid dd.analytics-note {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 .analytics-grid > div.danger {
   background: var(--danger-50);
   border-color: #f3c3c5;
 }
 
 .analytics-grid > div.danger dd {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .distribution {
@@ -623,7 +629,7 @@ a.brand {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  background: var(--primary);
 }
 
 .compare-cards {
@@ -957,7 +963,7 @@ a.brand {
 
 .editor-message.tone-error {
   background: var(--danger-50);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .edge-form {
@@ -1177,13 +1183,13 @@ a.brand {
 .quiz-option.correct {
   border-color: var(--success);
   background: var(--success-50);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .quiz-option.wrong {
   border-color: var(--danger);
   background: var(--danger-50);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .quiz-option.dim {
@@ -1212,12 +1218,12 @@ a.brand {
 
 .quiz-feedback.ok {
   background: var(--success-50);
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .quiz-feedback.bad {
   background: var(--warning-50);
-  color: var(--warning);
+  color: var(--warning-text);
 }
 
 .quiz-done {
@@ -1319,7 +1325,7 @@ a.brand {
   }
 }
 
-@media (max-width: 1299px) {
+@media (max-width: 1099px) {
   .navbar .label-mid,
   .navbar .label-keep {
     display: none;
@@ -1617,7 +1623,7 @@ a.brand {
 .highlight-mark {
   flex-shrink: 0;
   margin-top: 4px;
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .highlight-list strong,
@@ -1627,13 +1633,17 @@ a.brand {
   color: var(--text);
 }
 
+/* Inline so the arrow follows the last word when a title wraps. */
 .highlight-link {
-  gap: 5px;
-  padding: 0;
-  margin-bottom: 2px;
+  display: inline-block;
+  min-height: 26px;
+  padding: 2px 0;
+  margin-bottom: 0;
 }
 
 .highlight-link svg {
+  margin-left: 5px;
+  vertical-align: -1px;
   color: var(--muted);
 }
 
@@ -1944,7 +1954,7 @@ a.brand {
 .footer-column ul {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   margin: 10px 0 0;
   padding: 0;
   list-style: none;
@@ -1955,6 +1965,8 @@ a.brand {
 }
 
 .footer-column a {
+  display: inline-block;
+  padding: 4px 0; /* 26px tall targets; the list gap is reduced to match */
   color: var(--text-2);
   text-decoration: none;
   transition: color 0.15s;
@@ -2175,7 +2187,7 @@ a.brand {
 }
 
 .narration.tone-success .narration-icon {
-  color: var(--success);
+  color: var(--success-text);
 }
 
 .narration.tone-danger {
@@ -2185,7 +2197,7 @@ a.brand {
 
 .narration.tone-danger .narration-icon,
 .narration.tone-danger strong {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .narration.tone-neutral .narration-icon {
@@ -2333,6 +2345,14 @@ a.brand {
   cursor: progress;
 }
 
+/* Narrower screens: label, chips and example picker each get their own row. */
+@media (max-width: 1100px) {
+  .playground-presets-label,
+  .playground-preset-list {
+    flex-basis: 100%;
+  }
+}
+
 .playground-metrics {
   container-type: inline-size;
 }
@@ -2433,7 +2453,7 @@ a.brand {
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--success-50);
-  color: var(--success) !important;
+  color: var(--success-text) !important;
   font-weight: 600;
 }
 

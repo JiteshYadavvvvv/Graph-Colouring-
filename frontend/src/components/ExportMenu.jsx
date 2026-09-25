@@ -57,6 +57,8 @@ export default function ExportMenu({ cs }) {
         className="btn btn-secondary btn-md export-trigger"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Export Report"
+        title="Export Report"
         onClick={() => setOpen((o) => !o)}
         disabled={!cs.graph}
       >

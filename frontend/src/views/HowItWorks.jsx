@@ -224,7 +224,7 @@ export default function HowItWorks() {
       <section className="how-code">
         <div className="card pseudocode full">
           <h3 className="card-title">Pseudocode</h3>
-          <pre aria-label="Greedy coloring pseudocode">
+          <pre tabIndex={0} role="region" aria-label="Greedy coloring pseudocode">
             <code>{FULL_PSEUDOCODE}</code>
           </pre>
         </div>

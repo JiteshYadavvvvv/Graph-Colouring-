@@ -147,17 +147,17 @@ export default function ResultsView({ cs, navigate }) {
               <div>
                 <dt>Neighbor checks</dt>
                 <dd>{st.neighbor_checks}</dd>
-                <span className="muted small">each edge seen from both ends = 2E</span>
+                <dd className="analytics-note">each edge seen from both ends = 2E</dd>
               </div>
               <div>
                 <dt>Edges verified</dt>
                 <dd>{verification ? verification.checked_edges : '—'}</dd>
-                <span className="muted small">by POST /api/conflicts</span>
+                <dd className="analytics-note">by POST /api/conflicts</dd>
               </div>
               <div>
                 <dt>Execution time</dt>
                 <dd>{formatMs(st.execution_ms)}</dd>
-                <span className="muted small">measured on the backend</span>
+                <dd className="analytics-note">measured on the backend</dd>
               </div>
             </dl>
             <h4 className="subhead">Color distribution</h4>

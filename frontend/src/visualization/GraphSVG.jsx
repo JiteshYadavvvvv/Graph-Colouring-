@@ -302,6 +302,8 @@ export default function GraphSVG({
                   animate={{ scale: isActive ? 1.16 : isHovered ? 1.12 : isSelected ? 1.08 : 1 }}
                   transition={{ duration: 0.2 }}
                 >
+                  {/* Invisible, slightly larger hit area so small nodes stay easy to tap. */}
+                  <circle className="node-hit" r={r + 10} fill="transparent" />
                   <motion.circle
                     r={r}
                     initial={false}

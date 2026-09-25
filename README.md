@@ -132,7 +132,7 @@ Applied to a political map, the question becomes: *how can the states of India b
 | **K5 demonstration** | Whenever the Playground graph is complete, a card explains why: “K5 is a complete graph with five vertices. Because every pair of vertices is adjacent, each vertex requires a different color.”, with E = n(n − 1)/2 and the colors produced vs. the known minimum |
 | **Learning** | *How It Works* (seven illustrated lessons: graph, vertex, edge, graph coloring, chromatic number, greedy coloring, and why map coloring becomes graph coloring; then the algorithm in 6 steps, a live tutorial, pseudocode and complexity), Applications (7 real-world uses), Viva Mode (20 questions in 6 topics with answers, plus a 13-question scored quiz) |
 | **Export** | Coloring result (JSON, CSV), graph adjacency list (TXT), algorithm execution report (TXT, with timestamp) |
-| **Quality** | Friendly error states with Retry / Reset / Back to datasets, keyboard shortcuts and focus styles, ARIA labels, `prefers-reduced-motion`, responsive from 390 px phones to 1920 px projectors, fully offline |
+| **Quality** | Friendly error states with Retry / Reset / Back to datasets; keyboard shortcuts, visible focus styles and keyboard-scrollable code blocks and tables; ARIA labels; text contrast of at least 4.5:1 and controls of at least 24 × 24 px (the smallest map regions excepted, which can also be selected in the graph); conflicts shown with color, icon and text; animations that mark state changes (selection, coloring, conflicts, dataset switches) and respect `prefers-reduced-motion`; responsive from 390 px phones to 1920 px projectors; fully offline |
 
 ## 5. Tech Stack
 

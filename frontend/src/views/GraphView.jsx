@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import AdjacencyTable from '../components/AdjacencyTable';
 import AlgorithmTimeline from '../components/AlgorithmTimeline';
 import ColoringControls, { ShortcutHint } from '../components/ColoringControls';
@@ -45,17 +46,23 @@ export default function GraphView({ cs }) {
                 </Toggle>
               </div>
             </div>
-            <GraphSVG
+            <motion.div
               key={graph.key}
-              graph={graph}
-              coloring={coloring}
-              highlight={cs.highlight}
-              selected={cs.selected}
-              onSelect={cs.setSelected}
-              conflicts={cs.conflicts}
-              phaseMs={cs.phaseMs}
-              showDegrees={cs.showDegrees}
-            />
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+            >
+              <GraphSVG
+                graph={graph}
+                coloring={coloring}
+                highlight={cs.highlight}
+                selected={cs.selected}
+                onSelect={cs.setSelected}
+                conflicts={cs.conflicts}
+                phaseMs={cs.phaseMs}
+                showDegrees={cs.showDegrees}
+              />
+            </motion.div>
           </div>
         </div>
         <aside className="viz-side">

@@ -36,7 +36,7 @@ export default function ResultsTable({ result, graph, coloring, conflictVertices
     setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
 
   return (
-    <div className="table-scroll">
+    <div className="table-scroll" tabIndex={0} role="region" aria-label="Color assignment of every vertex">
       <table className="data-table results-table">
         <thead>
           <tr>

@@ -99,7 +99,7 @@ function Pipeline() {
 
 function CostTable({ caption, rows }) {
   return (
-    <div className="table-scroll">
+    <div className="table-scroll" tabIndex={0} role="region" aria-label={caption}>
       <table className="data-table cost-table">
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -322,7 +322,7 @@ export default function AboutView({ navigate }) {
         <div className="how-code">
           <div className="card pseudocode full">
             <h3 className="card-title">Pseudocode</h3>
-            <pre aria-label="Greedy coloring pseudocode">
+            <pre tabIndex={0} role="region" aria-label="Greedy coloring pseudocode">
               <code>{FULL_PSEUDOCODE}</code>
             </pre>
           </div>

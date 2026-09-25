@@ -166,7 +166,7 @@ export default function StatisticsView({ cs, navigate }) {
                 unchanged.
               </li>
             </ul>
-            <div className="table-scroll">
+            <div className="table-scroll" tabIndex={0} role="region" aria-label="Complexity by vertex order">
               <table className="data-table complexity-table">
                 <thead>
                   <tr>

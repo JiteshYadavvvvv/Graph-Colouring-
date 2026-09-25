@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { Columns2, Info, Map as MapIcon, Network } from 'lucide-react';
 import { useState } from 'react';
 import GraphSVG from '../visualization/GraphSVG';
@@ -74,20 +75,27 @@ export default function VizStage({ cs, title, edges = 'toggle', defaultMode = 'm
 
       {narration && <NarrationBar cs={cs} />}
 
-      <div className={`viz-stage mode-${view}`}>
+      {/* A new dataset fades in; panes fade in when the view mode changes. */}
+      <motion.div
+        key={graph.key}
+        className={`viz-stage mode-${view}`}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      >
         {view !== 'graph' && (
-          <figure className="viz-pane">
+          <motion.figure className="viz-pane" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
             {view === 'split' && <figcaption>Geographical map · regions</figcaption>}
             <IndiaMapSVG {...shared} showEdges={edges === 'conflicts' ? 'conflicts' : showEdges} />
-          </figure>
+          </motion.figure>
         )}
         {view !== 'map' && (
-          <figure className="viz-pane">
+          <motion.figure className="viz-pane" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.22 }}>
             {view === 'split' && <figcaption>Graph representation · vertices and edges</figcaption>}
             <GraphSVG key={graph.key} {...shared} />
-          </figure>
+          </motion.figure>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }

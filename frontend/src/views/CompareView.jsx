@@ -103,7 +103,7 @@ export default function CompareView({ cs, navigate }) {
                 {state.data.chromatic.exact ? '' : ' (bounds)'}
               </span>
             </div>
-            <div className="table-scroll">
+            <div className="table-scroll" tabIndex={0} role="region" aria-label="Algorithm comparison">
               <table className="data-table compare-table">
                 <thead>
                   <tr>

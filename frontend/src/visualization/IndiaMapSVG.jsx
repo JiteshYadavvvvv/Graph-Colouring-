@@ -248,7 +248,7 @@ export default function IndiaMapSVG({
                   fill: { duration: fillDelay ? 0.12 : t.ui, delay: fillDelay },
                   opacity: { duration: 0.25 },
                 }}
-                role={interactive ? 'button' : undefined}
+                role={interactive ? 'button' : 'img'}
                 tabIndex={interactive ? 0 : undefined}
                 aria-label={`${nameOf(graph, v)}, degree ${graph.adjacency[v].length}, ${color ? `color ${color}` : 'uncolored'}${isConflict ? ', in conflict with a neighbor' : ''}`}
                 aria-pressed={interactive ? v === selected : undefined}

@@ -28,7 +28,7 @@ export default function Pseudocode({ phase = null, strategy = 'natural', title =
   return (
     <div className="card pseudocode">
       <h3 className="card-title">{title}</h3>
-      <pre aria-label="Greedy coloring pseudocode">
+      <pre tabIndex={0} role="region" aria-label="Greedy coloring pseudocode">
         {lines.map((line, i) => (
           <code key={i} className={phase !== null && line.phases.includes(phase) ? 'hl' : ''}>
             <span className="ln">{i + 1}</span>

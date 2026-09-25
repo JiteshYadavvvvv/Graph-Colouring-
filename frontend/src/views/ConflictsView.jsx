@@ -92,7 +92,7 @@ export default function ConflictsView({ cs }) {
                 None. All {verification.checked_edges} edges connect differently colored vertices.
               </p>
             ) : (
-              <div className="table-scroll">
+              <div className="table-scroll" tabIndex={0} role="region" aria-label="Conflicting edges">
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -103,13 +103,19 @@ export default function ConflictsView({ cs }) {
                   </thead>
                   <tbody>
                     {verification.conflicts.map((c) => (
-                      <tr key={`${c.region_a}-${c.region_b}`} className="conflict">
+                      <motion.tr
+                        key={`${c.region_a}-${c.region_b}`}
+                        className="conflict"
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.25 }}
+                      >
                         <td>{name(c.region_a)}</td>
                         <td>{name(c.region_b)}</td>
                         <td className="nowrap">
                           <ColorChip color={c.color} /> Color {c.color}
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))}
                   </tbody>
                 </table>
@@ -119,7 +125,9 @@ export default function ConflictsView({ cs }) {
           {verification && (
             <div className="card">
               <h3 className="card-title">Raw API response</h3>
-              <pre className="json">{JSON.stringify(verification, null, 2)}</pre>
+              <pre className="json" tabIndex={0} role="region" aria-label="Raw API response">
+                {JSON.stringify(verification, null, 2)}
+              </pre>
             </div>
           )}
         </aside>

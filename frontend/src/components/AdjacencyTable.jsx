@@ -95,7 +95,7 @@ export default function AdjacencyTable({ graph, coloring = {}, selected, onSelec
           })}
         </div>
       ) : (
-        <div className="table-scroll">
+        <div className="table-scroll" tabIndex={0} role="region" aria-label="Adjacency list table">
           <table className="data-table">
             <thead>
               <tr>
