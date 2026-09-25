@@ -1,9 +1,12 @@
 import { motion } from 'framer-motion';
 import {
+  CircleCheck,
   CirclePlus,
   Eraser,
+  Eye,
   Info,
   Link2,
+  LoaderCircle,
   MousePointer2,
   Play,
   Plus,
@@ -12,11 +15,14 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { getGraph } from '../api/client';
 import Button from '../components/Button';
 import Segmented from '../components/Segmented';
 import { EXAMPLES } from '../content/examples';
 import { MAX_NAME_LENGTH, MAX_VERTICES } from '../hooks/usePlayground';
-import { STRATEGIES } from '../utils/constants';
+import { CUSTOM_DATASET, STRATEGIES } from '../utils/constants';
+import { graphMetrics, isComplete, numberWord } from '../utils/graphMetrics';
+import { chromaticText } from '../utils/status';
 import GraphEditor from '../visualization/GraphEditor';
 
 const TOOLS = [
@@ -24,6 +30,16 @@ const TOOLS = [
   { value: 'vertex', label: 'Vertex', icon: CirclePlus, title: 'Click the canvas to add a vertex' },
   { value: 'edge', label: 'Edge', icon: Link2, title: 'Click two vertices to connect them' },
   { value: 'erase', label: 'Delete', icon: Eraser, title: 'Click a vertex or an edge to delete it' },
+];
+
+/** Starting points: the backend's datasets (actual graph data) or an empty graph. */
+const PRESETS = [
+  { key: 'india', label: 'India States' },
+  { key: 'triangle', label: 'Triangle Graph' },
+  { key: 'cycle', label: 'Cycle Graph' },
+  { key: 'complete', label: 'Complete Graph K5' },
+  { key: 'bipartite', label: 'Bipartite Graph' },
+  { key: 'custom', label: 'Custom Graph' },
 ];
 
 function RenameField({ pg, vertex, onMessage }) {
@@ -53,6 +69,77 @@ function RenameField({ pg, vertex, onMessage }) {
   );
 }
 
+function Metric({ label, value, hint }) {
+  return (
+    <div title={hint}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
+/**
+ * Shown whenever the graph is complete (every pair of vertices adjacent):
+ * why K_n needs exactly n colors, with the figures of the graph on screen.
+ */
+function CompleteGraphDemo({ n, produced, chromatic }) {
+  return (
+    <section className="card demo-card" aria-labelledby="demo-title">
+      <span className="eyebrow">Demonstration</span>
+      <h3 id="demo-title">
+        Why K{n} needs {n} colors
+      </h3>
+      <p>
+        K{n} is a complete graph with {numberWord(n)} vertices. Because every pair of vertices is adjacent, each vertex
+        requires a different color.
+      </p>
+      <ul className="demo-points">
+        <li>
+          E = n(n − 1) / 2 = {n}·{n - 1} / 2 = {(n * (n - 1)) / 2} edges: every pair of vertices is joined.
+        </li>
+        <li>
+          Every vertex is adjacent to the other n − 1 = {n - 1} vertices, so no two vertices can share a color.
+        </li>
+        <li>
+          So at least {n} colors are needed, and {n} are enough: the known minimum is χ(K{n}) = {n}.
+        </li>
+      </ul>
+      {produced ? (
+        <p className="demo-result">
+          <CircleCheck size={16} aria-hidden="true" /> The algorithm produced {produced} colors; the known minimum is{' '}
+          {chromatic ? chromaticText(chromatic) : n}. For a complete graph they always match.
+        </p>
+      ) : (
+        <p className="muted small">Run coloring to see the algorithm produce {n} colors.</p>
+      )}
+    </section>
+  );
+}
+
+/** Notes of an unmodified preset: the dataset's own description and characteristics. */
+function OriginNotes({ origin }) {
+  return (
+    <section className="card demo-card" aria-label={`About ${origin.title}`}>
+      <span className="eyebrow">About this graph</span>
+      <h3>{origin.title}</h3>
+      {origin.description && <p>{origin.description}</p>}
+      {origin.hint && <p>{origin.hint}</p>}
+      {origin.characteristics?.length > 0 && (
+        <ul className="demo-points">
+          {origin.characteristics.map((c) => (
+            <li key={c}>{c}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Graph Playground: build or load a graph, measure it, and color it with the
+ * backend's coloring engine (POST /api/analyze, then POST /api/color), the
+ * same engine the rest of the application uses. No coloring happens here.
+ */
 export default function PlaygroundView({ cs, pg, navigate }) {
   const [tool, setTool] = useState('select');
   const [message, setMessage] = useState(null);
@@ -61,7 +148,7 @@ export default function PlaygroundView({ cs, pg, navigate }) {
   const [randomN, setRandomN] = useState(8);
   const [randomP, setRandomP] = useState(0.35);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
+  const [busy, setBusy] = useState(null); // 'preset' | 'run' | null
 
   useEffect(() => {
     if (!confirmClear) return undefined;
@@ -70,8 +157,33 @@ export default function PlaygroundView({ cs, pg, navigate }) {
   }, [confirmClear]);
 
   const selected = pg.selected ? pg.byId[pg.selected] : null;
-  const maxDegree = pg.vertices.reduce((max, v) => Math.max(max, pg.degree(v.id)), 0);
   const sortedVertices = useMemo(() => [...pg.vertices].sort((a, b) => a.name.localeCompare(b.name)), [pg.vertices]);
+  const metrics = useMemo(() => graphMetrics(pg.vertices.map((v) => v.id), pg.edges), [pg.vertices, pg.edges]);
+
+  // Backend results are shown only while they belong to the graph as it is now.
+  const current = pg.colored && cs.graph?.key === CUSTOM_DATASET && cs.result && cs.runState === 'done';
+  const result = current ? cs.result : null;
+  const chromatic = current ? cs.graph.chromatic : null;
+  const activePreset = pg.unmodified ? (pg.origin.kind === 'dataset' ? pg.origin.key : pg.origin.kind === 'custom' ? 'custom' : null) : null;
+
+  const loadPreset = async (key) => {
+    setMessage(null);
+    if (key === 'custom') {
+      pg.clear();
+      setMessage({ tone: 'info', text: 'Empty graph: add vertices with the Vertex tool or the “Add vertex” button.' });
+      return;
+    }
+    setBusy('preset');
+    try {
+      const graph = await getGraph(key);
+      pg.loadDataset(graph);
+      setMessage({ tone: 'info', text: `Loaded ${graph.name}: ${graph.vertices.length} vertices, ${graph.edges.length} edges.` });
+    } catch (error) {
+      setMessage({ tone: 'error', text: error.message });
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const addEdgeFromForm = (event) => {
     event.preventDefault();
@@ -83,23 +195,32 @@ export default function PlaygroundView({ cs, pg, navigate }) {
     );
   };
 
-  const colorIt = async () => {
+  /** Validate the graph on the backend, then color it there (in place or step by step). */
+  const runColoring = async (mode) => {
     if (!pg.vertices.length) {
       setMessage({ tone: 'error', text: 'The graph is empty. Add at least one vertex first.' });
       return;
     }
-    setSubmitting(true);
-    setMessage({ tone: 'info', text: 'Sending the graph to the backend…' });
+    setBusy('run');
+    setMessage(null);
     try {
       const analyzed = await cs.loadCustomGraph(pg.toSpec());
-      navigate('graph');
-      cs.run('animate', { graph: analyzed });
+      pg.markRun();
+      if (mode === 'watch') {
+        navigate('map');
+        cs.run('animate', { graph: analyzed });
+      } else {
+        await cs.run('instant', { graph: analyzed });
+      }
     } catch (error) {
       setMessage({ tone: 'error', text: error.message });
     } finally {
-      setSubmitting(false);
+      setBusy(null);
     }
   };
+
+  const verification = current ? cs.verification : null;
+  const conflictCount = verification ? verification.conflicts.length : null;
 
   return (
     <div className="page">
@@ -108,13 +229,49 @@ export default function PlaygroundView({ cs, pg, navigate }) {
           <span className="eyebrow">Graph Playground</span>
           <h1>Build Your Own Graph</h1>
           <p className="muted">
-            Draw a graph, then color it with the same backend algorithm used for the map. The graph is validated on the
-            server, so every result you see is computed there.
+            Load a dataset or build a graph, edit it, and color it with the same backend engine as the rest of the
+            application. The graph is validated and colored on the server; this page only draws and measures it.
           </p>
         </div>
       </header>
 
-      <div className="card playground-toolbar" role="toolbar" aria-label="Playground tools">
+      <section className="card playground-presets" aria-label="Start from a dataset">
+        <span className="playground-presets-label">Start from</span>
+        <div className="playground-preset-list">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset.key}
+              type="button"
+              className={`dataset-chip ${activePreset === preset.key ? 'active' : ''}`}
+              aria-pressed={activePreset === preset.key}
+              onClick={() => loadPreset(preset.key)}
+              disabled={busy === 'preset'}
+            >
+              <strong>{preset.label}</strong>
+            </button>
+          ))}
+        </div>
+        <label className="select-inline">
+          <span className="sr-only">Load an application example</span>
+          <select
+            value=""
+            onChange={(e) => {
+              if (!e.target.value) return;
+              pg.loadExample(e.target.value);
+              setMessage({ tone: 'info', text: EXAMPLES[e.target.value].hint });
+            }}
+          >
+            <option value="">Application example…</option>
+            {Object.entries(EXAMPLES).map(([key, ex]) => (
+              <option key={key} value={key}>
+                {ex.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
+      <div className="card playground-toolbar" role="toolbar" aria-label="Editing tools">
         <Segmented options={TOOLS} value={tool} onChange={setTool} ariaLabel="Editing tool" />
         <div className="toolbar-actions">
           <Button
@@ -129,24 +286,6 @@ export default function PlaygroundView({ cs, pg, navigate }) {
           >
             Add vertex
           </Button>
-          <label className="select-inline">
-            <span className="sr-only">Load an example</span>
-            <select
-              value=""
-              onChange={(e) => {
-                if (!e.target.value) return;
-                pg.loadExample(e.target.value);
-                setMessage({ tone: 'info', text: EXAMPLES[e.target.value].hint });
-              }}
-            >
-              <option value="">Load example…</option>
-              {Object.entries(EXAMPLES).map(([key, ex]) => (
-                <option key={key} value={key}>
-                  {ex.title}
-                </option>
-              ))}
-            </select>
-          </label>
           <Button
             variant={confirmClear ? 'danger' : 'ghost'}
             size="sm"
@@ -172,13 +311,20 @@ export default function PlaygroundView({ cs, pg, navigate }) {
           <div className="card viz-card">
             <div className="card-title-row wrap">
               <div className="viz-title">
-                <h3 className="card-title">Canvas</h3>
+                <h3 className="card-title">{pg.unmodified ? pg.origin.title : `${pg.origin.title} (edited)`}</h3>
                 <span className="muted small">
-                  {pg.vertices.length} vertices · {pg.edges.length} edges · max degree {maxDegree}
+                  {metrics.V} vertices · {metrics.E} edges
+                  {result ? ` · colored by the backend with ${result.colors_used} colors` : ''}
                 </span>
               </div>
             </div>
-            <GraphEditor pg={pg} tool={tool} onMessage={setMessage} />
+            <GraphEditor
+              pg={pg}
+              tool={tool}
+              onMessage={setMessage}
+              coloring={current ? cs.coloring : null}
+              conflicts={current ? cs.conflicts.vertices : null}
+            />
             {message && (
               <motion.p
                 key={message.text}
@@ -195,6 +341,49 @@ export default function PlaygroundView({ cs, pg, navigate }) {
               Keyboard: Tab to a vertex, Enter to use the current tool, Delete to remove it, arrow keys to move it.
             </p>
           </div>
+
+          <section className="card playground-metrics" aria-labelledby="metrics-title">
+            <h3 id="metrics-title" className="card-title">
+              Graph metrics
+            </h3>
+            <dl className="metric-grid six">
+              <Metric label="V" value={metrics.V} hint="Number of vertices" />
+              <Metric label="E" value={metrics.E} hint="Number of edges" />
+              <Metric label="Density" value={metrics.density.toFixed(3)} hint="E divided by the number of vertex pairs, V(V − 1) / 2" />
+              <Metric label="Min degree" value={metrics.minDegree} />
+              <Metric label="Max degree" value={metrics.maxDegree} />
+              <Metric label="Avg degree" value={metrics.averageDegree.toFixed(2)} hint="2E / V" />
+            </dl>
+            <h4 className="subhead">Coloring</h4>
+            <dl className="metric-grid three">
+              <Metric label="Colors produced by algorithm" value={result ? result.colors_used : '—'} />
+              <Metric
+                label="Conflicts"
+                value={verification ? conflictCount : current && cs.verifying ? '…' : '—'}
+              />
+              <Metric
+                label={
+                  <>
+                    Known minimum <span className="nocase">(χ)</span>
+                  </>
+                }
+                value={chromatic ? `${chromaticText(chromatic)}${chromatic.exact ? '' : ' (bounds)'}` : '—'}
+              />
+            </dl>
+            <p className="muted small">
+              {chromatic
+                ? chromatic.exact
+                  ? `The minimum was proven by an exact search on the backend. The algorithm's count is not guaranteed to match it on other graphs.`
+                  : 'The minimum could not be proven within the search budget, so only bounds are shown.'
+                : 'Run coloring to get the colors produced and the known minimum from the backend.'}
+            </p>
+          </section>
+
+          {isComplete(metrics) ? (
+            <CompleteGraphDemo n={metrics.V} produced={result?.colors_used} chromatic={chromatic} />
+          ) : (
+            pg.unmodified && (pg.origin.kind === 'dataset' || pg.origin.kind === 'example') && <OriginNotes origin={pg.origin} />
+          )}
         </div>
 
         <aside className="viz-side">
@@ -210,14 +399,21 @@ export default function PlaygroundView({ cs, pg, navigate }) {
                 ))}
               </select>
             </label>
-            <Button icon={Play} onClick={colorIt} disabled={submitting || !pg.vertices.length}>
-              {submitting ? 'Sending…' : 'Run coloring'}
+            <Button icon={busy === 'run' ? LoaderCircle : Play} onClick={() => runColoring('instant')} disabled={Boolean(busy) || !pg.vertices.length}>
+              {busy === 'run' ? 'Coloring…' : 'Run coloring'}
+            </Button>
+            <Button variant="secondary" icon={Eye} onClick={() => runColoring('watch')} disabled={Boolean(busy) || !pg.vertices.length}>
+              Watch step by step
             </Button>
             <p className="muted small">
-              Opens the Graph view and replays the backend’s steps. Results, Conflicts, Statistics, Compare and Export
-              then work on your graph too.
+              {result
+                ? 'Colored by the backend. Edit the graph and run again to recolor it.'
+                : pg.colored === false && pg.vertices.length && cs.graph?.key === CUSTOM_DATASET
+                  ? 'The graph has changed since the last run.'
+                  : 'The backend validates the graph, colors it, and checks every edge.'}
             </p>
           </div>
+
 
           <div className="card">
             <h3 className="card-title">Selected vertex</h3>

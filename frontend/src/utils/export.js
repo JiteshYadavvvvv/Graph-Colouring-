@@ -137,6 +137,7 @@ export function reportText(cs, now) {
     row('Max degree (Δ)', `${stats.max_degree}${x.hubs.length === 1 ? ` (${nameOf(graph, x.hubs[0])})` : ''}`),
     row('Min degree', stats.min_degree),
     row('Average degree', stats.average_degree.toFixed(2)),
+    row('Density', stats.density),
     '',
     'ALGORITHM',
     row('Algorithm', `${result.algorithm ?? 'Greedy Graph Coloring'} (${strategyInfo(result.strategy).algorithm} order)`),
@@ -145,9 +146,9 @@ export function reportText(cs, now) {
     row('Space complexity', result.statistics.space_complexity),
     '',
     'RESULT',
-    row('Colors used', x.colorsUsed),
+    row('Colors produced', `${x.colorsUsed} (by the algorithm)`),
     row(
-      'Minimum colors (χ)',
+      'Known minimum (χ)',
       chromatic?.value !== null && chromatic?.value !== undefined
         ? `${chromatic.value} (exact)`
         : `between ${chromatic?.lower_bound} and ${chromatic?.upper_bound} (not proven)`,

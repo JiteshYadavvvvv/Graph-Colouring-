@@ -190,7 +190,7 @@ def analyze_graph(request: AnalyzeRequest):
         edges=edge_list(graph),
         adjacency=graph,
         layout=layout,
-        labels={v: _short_label(names[v]) for v in graph},
+        labels={v: (request.labels or {}).get(v) or _short_label(names[v]) for v in graph},
         names=names,
         statistics=graph_statistics(graph),
         chromatic=chromatic_number(graph),

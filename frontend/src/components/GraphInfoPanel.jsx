@@ -38,8 +38,9 @@ export default function GraphInfoPanel({ cs, title = 'Graph statistics' }) {
     ['Max degree (Δ)', hubs.length === 1 ? `${s.max_degree} · ${nameOf(graph, hubs[0])}` : s.max_degree],
     ['Min degree', s.min_degree],
     ['Avg degree', s.average_degree.toFixed(2)],
-    ['Colors used', colorsUsed],
-    [<>Minimum colors <span className="nocase">(χ)</span></>, `${chromaticText(graph.chromatic)}${graph.chromatic?.exact ? '' : ' (bounds)'}`],
+    ['Density', s.density.toFixed(3)],
+    ['Colors produced by algorithm', colorsUsed],
+    [<>Known minimum <span className="nocase">(χ)</span></>, `${chromaticText(graph.chromatic)}${graph.chromatic?.exact ? '' : ' (bounds only)'}`],
     ['Conflicts', verification ? verification.conflicts.length : '—'],
     ['Execution time', result ? formatMs(result.statistics.execution_ms) : '—'],
   ];

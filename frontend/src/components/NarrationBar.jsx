@@ -4,7 +4,7 @@ import { PHASE_LABELS } from '../utils/constants';
 import { nameOf, pad2 } from '../utils/helpers';
 import { listText, narrate } from '../utils/narration';
 
-/** What the workspace should say right now, from the real application state. */
+/** What the narration strip should say right now, from the real application state. */
 function currentMessage(cs) {
   const { graph, result, runState, cursor, selected, coloring, verification, verifying, animating } = cs;
   const name = (v) => nameOf(graph, v);
@@ -59,7 +59,7 @@ function currentMessage(cs) {
 }
 
 /**
- * One-line narration of the workspace: the current phase of the algorithm
+ * One-line narration of the Map view: the current phase of the algorithm
  * while it runs, the verdict when it finishes, or the selected vertex.
  */
 export default function NarrationBar({ cs }) {

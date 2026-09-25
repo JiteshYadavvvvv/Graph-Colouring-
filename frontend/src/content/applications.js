@@ -2,7 +2,7 @@ import { CalendarClock, Cpu, Factory, GraduationCap, Map as MapIcon, Radio, Wifi
 
 /**
  * Real-world problems that are graph coloring in disguise. `example` names a
- * graph in content/examples.js that can be opened in the Playground.
+ * graph in content/examples.js that can be opened in the Graph Playground.
  */
 export const APPLICATIONS = [
   {

@@ -68,11 +68,11 @@ The underlying problems are well known; this project's contribution is the imple
 Concretely, the system:
 
 * stores **31 Indian regions** (28 states plus Jammu and Kashmir, Ladakh and Delhi; **60 shared land borders**) as an adjacency list on the backend, with a stable ID per region (`IN-MH`, `IN-GJ`, …);
-* provides five textbook graphs (wheel, triangle K3, cycle C7, complete K5, bipartite crown graph) and a **Graph Playground** for building custom graphs;
+* provides five textbook graphs (wheel, triangle K3, cycle C7, complete K5, bipartite crown graph) and a **Graph Playground** for loading, editing and building graphs;
 * colors any of them with a hand-written **greedy coloring** algorithm (three vertex orders: natural, Welsh–Powell, DSATUR) that records every step;
 * replays those steps on a **geographically accurate SVG map of India** (real state boundaries, stored locally) and on a draggable node-link graph, both kept in sync;
 * verifies every result with a separate **conflict detector**, and can deliberately inject a conflict to demonstrate it;
-* computes the **exact chromatic number** of each graph (when feasible) so that "colors used by greedy" and "minimum possible colors" are never confused;
+* computes the **exact chromatic number** of each graph (when feasible) and always keeps two numbers apart: the **colors produced by the algorithm** and the **known minimum (χ)**;
 * includes learning material: key terms, pseudocode, complexity analysis, real-world applications, a Viva Mode with a quiz, and exportable reports.
 
 ## 2. Problem Statement
@@ -103,16 +103,17 @@ Applied to a political map, the question becomes: *how can the states of India b
 | **Header** | AIT logo and institute name, project title, dataset selector, **Export Report**, **Viva Mode** and **Reset Experiment** buttons |
 | **Footer** | On the Home and Project Team pages: the project's name and purpose, where it was built, links to the main sections, a large *CHROMA* wordmark, and © 2026 |
 | **Datasets** | Gallery of all datasets with a live preview, graph type, characteristics, and computed V, E, Δ and χ |
-| **Map + Graph workspace** | The geographical map (left) and its graph (right) side by side, driven by one shared state and the same stable IDs: selecting a state highlights its vertex, its neighbors and its edges in both views, and selecting a vertex highlights the region. A narration strip explains every phase of the algorithm in plain language ("Selected Maharashtra." → "Colors 1, 2 and 3 are already used." → "Assigning Color 4 to Maharashtra."), built from the backend's step data. Also: real India state/UT boundaries (local SVG), tooltips, **Show vertex degrees**, an optional overlay of all graph edges, and a **Map / Graph / Map + Graph** switch |
+| **Map view** | The geographical map, its graph, or both side by side (**Split**), driven by one shared state and the same stable IDs: selecting a state highlights its vertex, its neighbors and its edges in both views, and selecting a vertex highlights the region. A narration strip explains every phase of the algorithm in plain language ("Selected Maharashtra." → "Colors 1, 2 and 3 are already used." → "Assigning Color 4 to Maharashtra."), built from the backend's step data. Also: real India state/UT boundaries (local SVG), tooltips, **Show vertex degrees**, an optional overlay of all graph edges, and a **Map / Graph / Split** switch; the step panel, graph statistics, legend and timeline sit in the side column |
 | **Graph view** | Draggable node-link graph, degree badges, neighbor highlighting, vertex details card, adjacency list as a tree or a table |
 | **Execution modes** | **Auto Play**, **Step-by-Step** and **Instant**. Each backend step is replayed in five phases: *choose vertex → check neighboring colors → find available color → assign color → move to next vertex* |
 | **Playback bar** | Previous / Play-Pause / Next / Restart, speed **0.5× 1× 2× 4×**, "Step 7 / 31", vertex order (natural, Welsh–Powell, DSATUR); the execution panel shows the current vertex, why it was chosen, its neighbors and their colors, the used and available colors and the selected color |
 | **Graph statistics panel** | Dataset, algorithm, vertices, edges, max/min/average degree, colors used, minimum colors χ, conflicts, execution time and validity, all computed from the actual graph and result |
 | **Conflict detection** | `POST /api/conflicts` checks every edge. Conflicting vertices get a red outline, a ⚠ icon and a text explanation (never color alone); **Simulate Conflict** breaks the coloring on purpose, **Fix Coloring** runs the algorithm again on the backend and verifies the new result |
-| **Results & analytics** | Colors used, color distribution ("Color 1 → 10 vertices"), conflicts, vertices processed, neighbor checks, edges verified, execution time, sortable assignment table, χ comparison |
+| **Results & analytics** | Colors produced by the algorithm, color distribution ("Color 1 → 10 vertices"), conflicts, vertices processed, neighbor checks, edges verified, execution time, sortable assignment table, χ comparison |
 | **Compare** | Greedy vs. Welsh–Powell vs. DSATUR on the same graph: colors, execution time, vertex ordering, validity, and a replay button for each |
-| **Graph Playground** | Add / delete / rename vertices, add / delete edges (canvas or accessible forms), random graphs G(n, p), real-world examples, validation (no self-loops, duplicate edges or duplicate names), then color on the backend |
-| **Learning** | *Learn Graph Coloring* (seven illustrated lessons: graph, vertex, edge, graph coloring, chromatic number, greedy coloring, and why map coloring becomes graph coloring; then the algorithm in 6 steps, a live tutorial, pseudocode and complexity), Applications (7 real-world uses), Viva Mode (20 questions in 6 topics with answers, plus a 13-question scored quiz) |
+| **Graph Playground** | Start from a backend dataset (India States, Triangle, Cycle, Complete K5, Bipartite) or a custom graph; add / delete / rename vertices, add / delete edges (canvas or accessible forms), random graphs G(n, p), application examples; validation (no self-loops, duplicate edges or duplicate names). **Run coloring** colors the graph in place with the same backend engine (`POST /api/analyze` + `POST /api/color`), and **Watch step by step** replays it on the Map view. Live metrics: V, E, minimum / maximum / average degree, density; after a run: colors produced by the algorithm, conflicts, and the known minimum χ. Editing after a run hides the outdated result |
+| **K5 demonstration** | Whenever the Playground graph is complete, a card explains why: “K5 is a complete graph with five vertices. Because every pair of vertices is adjacent, each vertex requires a different color.”, with E = n(n − 1)/2 and the colors produced vs. the known minimum |
+| **Learning** | *How It Works* (seven illustrated lessons: graph, vertex, edge, graph coloring, chromatic number, greedy coloring, and why map coloring becomes graph coloring; then the algorithm in 6 steps, a live tutorial, pseudocode and complexity), Applications (7 real-world uses), Viva Mode (20 questions in 6 topics with answers, plus a 13-question scored quiz) |
 | **Export** | Coloring result (JSON, CSV), graph adjacency list (TXT), algorithm execution report (TXT, with timestamp) |
 | **Quality** | Friendly error states with Retry / Reset / Back to datasets, keyboard shortcuts and focus styles, ARIA labels, `prefers-reduced-motion`, responsive from 390 px phones to 1920 px projectors, fully offline |
 
@@ -155,7 +156,7 @@ Design decisions:
 
 * **The backend is authoritative.** The frontend never computes a coloring. `coloringAtCursor()` rebuilds what is visible from the `assigned_color` values the backend returned, so the animation cannot show something the algorithm did not do.
 * **Single source of truth for graphs.** Adjacency lists exist only in `backend/data/`. The frontend's `indiaGeometry.js` holds only drawing geometry (SVG paths, label anchors).
-* **Stable identifiers.** Every vertex has an ID that never changes (`IN-MH` for Maharashtra, `v3` for a Playground vertex). Algorithms, API and UI use IDs; names are display-only. The map region and the graph vertex share the same ID, which is how selections and colors stay synchronized.
+* **Stable identifiers.** Every vertex has an ID that never changes (`IN-MH` for Maharashtra, `v3` for a vertex created in the Graph Playground). Algorithms, API and UI use IDs; names are display-only. The map region and the graph vertex share the same ID, which is how selections and colors stay synchronized.
 
 ## 7. Graph Representation
 
@@ -346,7 +347,7 @@ A *graph source* is either `{"dataset": "<key>"}` or a custom graph `{"graph": {
 ```
 
 ### `POST /api/analyze`
-Validates a custom graph (from the Playground) and returns it in the same format as `GET /api/graph` with `key: "custom"`.
+Validates a custom graph (from the Graph Playground) and returns it in the same format as `GET /api/graph` with `key: "custom"`, including its exact chromatic number when the search can prove it. `labels` (optional, up to 4 characters) sets the short text drawn inside each node; otherwise it is derived from the name.
 ```json
 { "graph": { "v1": ["v2"], "v2": ["v1"] }, "names": { "v1": "Maths", "v2": "Physics" },
   "layout": { "v1": { "x": 100, "y": 80 } } }
@@ -417,13 +418,14 @@ frontend/src/
 ├── hooks/
 │   ├── useColoring.js       all coloring state: graph, result, 5-phase playback clock,
 │   │                        verification, conflict demo, custom graphs
-│   ├── usePlayground.js     editable graph for the Playground (validated operations)
+│   ├── usePlayground.js     editable graph for the Playground (validated operations,
+│   │                        presets, change tracking so outdated results are never shown)
 │   ├── useShortcuts.js      Space / ← → / F / R
 │   └── useMediaQuery.js
 ├── visualization/
 │   ├── IndiaMapSVG.jsx      map: fills, outlines, labels, degrees, edges, conflict icons
 │   ├── GraphSVG.jsx         draggable node-link graph
-│   └── GraphEditor.jsx      Playground canvas (mouse, touch and keyboard)
+│   └── GraphEditor.jsx      Graph Playground canvas (mouse, touch and keyboard)
 ├── components/              ColoringControls (playback bar), StepPanel, GraphInfoPanel,
 │                            AlgorithmTimeline, Pseudocode, Legend, VertexCard, VizStage,
 │                            ConflictBanner, ConflictDemoButtons, ColorDistribution,
@@ -519,7 +521,7 @@ The frontend and backend are deployed as **two separate Vercel projects**. Deplo
 | ![Home](docs/screenshots/home.png) **Home**: institutional header and entry points | ![Datasets](docs/screenshots/datasets.png) **Datasets**: computed V, E, Δ and χ for every graph |
 | ![Step by step](docs/screenshots/step-by-step.png) **Step-by-step replay**: step 18, Maharashtra; neighbors block colors 1–3, so it takes color 4 (map and graph in sync) | ![Conflict](docs/screenshots/conflict.png) **Conflict detection**: a simulated conflict found by the backend, shown with outline, ⚠ icon and text |
 | ![Results](docs/screenshots/results.png) **Results**: analytics, color distribution, χ comparison, export | ![Compare](docs/screenshots/compare.png) **Compare**: on the crown graph DSATUR needs 2 colors, greedy and Welsh–Powell 4 |
-| ![Playground](docs/screenshots/playground.png) **Graph Playground**: the exam-timetable example | ![Viva](docs/screenshots/viva.png) **Viva Mode**: questions with answers and a quiz |
+| ![Playground](docs/screenshots/playground.png) **Graph Playground**: the K5 demonstration, colored in place | ![Viva](docs/screenshots/viva.png) **Viva Mode**: questions with answers and a quiz |
 | ![Project Team](docs/screenshots/team.png) **Project Team**: the four team members | |
 
 ## 19. Viva Questions
@@ -562,7 +564,7 @@ Current limitations:
 
 * Boundaries are simplified to about 3 km precision (≈ 75 KB of geometry). They follow the source dataset, which draws India's official extent (Jammu and Kashmir includes PoK; Ladakh includes Gilgit-Baltistan and Aksai Chin).
 * Only the India dataset has map shapes; other graphs are shown as node-link diagrams.
-* Custom graphs live in the browser session only and are limited to 60 vertices (30 in the Playground editor).
+* Custom graphs live in the browser session only and are limited to 60 vertices (40 in the Playground editor).
 * The exact chromatic number is only guaranteed within the search budget; beyond it the app shows proven bounds.
 * Dragged node positions reset when the page reloads or the dataset changes.
 

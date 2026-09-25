@@ -34,7 +34,7 @@ export function edgeKey(u, v) {
 
 /**
  * What to send the backend for a loaded graph: its dataset key, or, for a
- * Playground graph, the adjacency list itself (the server keeps no state).
+ * Graph Playground graph, the adjacency list itself (the server keeps no state).
  */
 export function graphSource(graph) {
   return graph.key === CUSTOM_DATASET ? { graph: graph.adjacency, names: graph.names } : { dataset: graph.key };

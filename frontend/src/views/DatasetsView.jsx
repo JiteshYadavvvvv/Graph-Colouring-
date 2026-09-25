@@ -89,9 +89,9 @@ export default function DatasetsView({ cs, navigate }) {
                   <Fact label="Edges" value={d.edges} />
                   <Fact label="Max degree" value={d.max_degree} />
                   <Fact
-                    label="Min colors"
+                    label="Known min."
                     value={d.chromatic_number ?? '?'}
-                    title="Chromatic number χ: the minimum number of colors, computed exactly on the backend"
+                    title="Known minimum (chromatic number χ), proven by an exact search on the backend"
                   />
                 </dl>
                 <ul className="dataset-traits">

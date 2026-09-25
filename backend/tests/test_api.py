@@ -167,6 +167,14 @@ class ApiTests(unittest.TestCase):
         self.assertIn("v2", body["layout"])
         self.assertEqual(body["chromatic"]["value"], 2)
 
+    def test_analyze_accepts_short_labels(self):
+        graph = {"v1": ["v2"], "v2": ["v1"]}
+        status, body = self.call("/api/analyze", {"graph": graph, "labels": {"v1": "MH"}})
+        self.assertEqual(status, 200)
+        self.assertEqual(body["labels"], {"v1": "MH", "v2": "v2"})
+        status, _ = self.call("/api/analyze", {"graph": graph, "labels": {"v1": "TOOLONG"}})
+        self.assertEqual(status, 422)
+
     def test_compare(self):
         status, body = self.call("/api/compare", {"dataset": "bipartite"})
         self.assertEqual(status, 200)

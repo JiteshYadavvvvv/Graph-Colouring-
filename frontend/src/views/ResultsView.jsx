@@ -70,7 +70,7 @@ export default function ResultsView({ cs, navigate }) {
 
   const stats = [
     { label: graph.kind === 'map' ? 'Regions' : 'Vertices', value: result.steps.length },
-    { label: 'Colors used', value: colorCount },
+    { label: 'Colors produced', value: colorCount },
     { label: 'Conflicts', value: verifying ? '…' : conflictCount ?? '—', danger: Boolean(conflictCount) },
   ];
 
@@ -133,7 +133,7 @@ export default function ResultsView({ cs, navigate }) {
             </div>
             <dl className="analytics-grid">
               <div>
-                <dt>Colors used</dt>
+                <dt>Colors produced by algorithm</dt>
                 <dd>{colorCount}</dd>
               </div>
               <div className={conflictCount ? 'danger' : ''}>

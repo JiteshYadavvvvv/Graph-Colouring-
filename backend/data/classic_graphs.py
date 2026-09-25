@@ -78,7 +78,8 @@ COMPLETE = {
     "graph_type": "Complete graph K5",
     "description": "Five vertices where every pair is connected.",
     "characteristics": [
-        "Every pair of vertices is adjacent, so every vertex needs its own color.",
+        "K5 is a complete graph with five vertices. Because every pair of vertices is adjacent, "
+        "each vertex requires a different color.",
         "K5 is not planar: it could never come from a map.",
     ],
     "adjacency": complete_adjacency(_K5_IDS),

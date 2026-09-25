@@ -156,8 +156,8 @@ export default function HowItWorks() {
     <div className="page">
       <header className="page-header">
         <div>
-          <span className="eyebrow">Educational mode</span>
-          <h1>Learn Graph Coloring</h1>
+          <span className="eyebrow">Learn</span>
+          <h1>How Graph Coloring Works</h1>
           <p className="muted">
             From a map to a graph, from a graph to a coloring: seven short lessons with examples, then the greedy
             algorithm step by step, computed live by the backend.

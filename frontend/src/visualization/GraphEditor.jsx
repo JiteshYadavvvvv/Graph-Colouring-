@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
-import { useMediaQuery } from '../hooks/useMediaQuery';
 import { CANVAS } from '../hooks/usePlayground';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import { CONFLICT_RED } from '../utils/constants';
+import { colorFill, colorInk } from '../utils/helpers';
 
 /** Same rule as the backend's node labels: initials of several words, else 3 letters. */
 function shortLabel(name) {
@@ -9,7 +11,10 @@ function shortLabel(name) {
 }
 
 /**
- * Canvas of the Graph Playground.
+ * Canvas of the Graph Playground. `coloring` (vertex ID → color from the
+ * backend) and `conflicts` (vertex IDs) are drawn only when they belong to
+ * the graph as it is now; the canvas itself never computes colors.
+ *
  *   select  drag a vertex to move it, click to select it
  *   vertex  click empty space to add a vertex there
  *   edge    click one vertex, then another, to connect them
@@ -17,13 +22,15 @@ function shortLabel(name) {
  * Keyboard: Tab to a vertex; Enter acts with the current tool; Delete removes
  * it; arrow keys move the selected vertex; Escape cancels a pending edge.
  */
-export default function GraphEditor({ pg, tool, onMessage }) {
+export default function GraphEditor({ pg, tool, onMessage, coloring = null, conflicts = null }) {
   const svgRef = useRef(null);
   const drag = useRef(null);
   const [pending, setPending] = useState(null); // first vertex of a new edge
   // On phones the canvas is drawn at about half size, so vertices get bigger
-  // to stay comfortable touch targets.
-  const R = useMediaQuery('(max-width: 600px)') ? 32 : 22;
+  // to stay comfortable touch targets; large graphs (India) use smaller nodes.
+  const phone = useMediaQuery('(max-width: 600px)');
+  const compact = pg.vertices.length > 16;
+  const R = compact ? (phone ? 20 : 16) : phone ? 32 : 22;
 
   const toPoint = (event) => {
     const svg = svgRef.current;
@@ -121,7 +128,7 @@ export default function GraphEditor({ pg, tool, onMessage }) {
   const degree = (id) => pg.edges.filter(([a, b]) => a === id || b === id).length;
 
   return (
-    <div className={`editor-wrap tool-${tool}`}>
+    <div className={`editor-wrap tool-${tool} ${compact ? 'compact' : ''}`}>
       <svg
         ref={svgRef}
         className="graph-editor"
@@ -167,6 +174,10 @@ export default function GraphEditor({ pg, tool, onMessage }) {
         {pg.vertices.map((v) => {
           const isSelected = pg.selected === v.id;
           const isPending = pending === v.id;
+          const color = coloring?.[v.id];
+          const inConflict = conflicts?.has(v.id);
+          const label = v.label ?? (v.name.length > 3 ? shortLabel(v.name) : v.name);
+          const showFullName = !v.label && !compact && v.name.length > 3;
           return (
             <g
               key={v.id}
@@ -175,16 +186,21 @@ export default function GraphEditor({ pg, tool, onMessage }) {
               role="button"
               tabIndex={0}
               aria-pressed={isSelected || isPending}
-              aria-label={`${v.name}, degree ${degree(v.id)}${isPending ? ', edge start' : ''}`}
+              aria-label={`${v.name}, degree ${degree(v.id)}${color ? `, color ${color}` : ''}${inConflict ? ', in conflict' : ''}${isPending ? ', edge start' : ''}`}
               onPointerDown={(e) => onVertexPointerDown(v.id, e)}
               onPointerUp={() => onVertexPointerUp(v.id)}
               onKeyDown={(e) => onVertexKey(v.id, e)}
             >
-              <circle r={R} />
-              <text className="editor-label" textAnchor="middle" dy="0.35em">
-                {v.name.length > 3 ? shortLabel(v.name) : v.name}
+              <title>{v.name}</title>
+              <circle
+                r={R}
+                style={color ? { fill: colorFill(color), stroke: inConflict ? CONFLICT_RED : '#fff' } : inConflict ? { stroke: CONFLICT_RED } : undefined}
+                className={inConflict ? 'conflict' : undefined}
+              />
+              <text className="editor-label" textAnchor="middle" dy="0.35em" style={color ? { fill: colorInk(color) } : undefined}>
+                {label}
               </text>
-              {v.name.length > 3 && (
+              {showFullName && (
                 <text className="editor-fullname" textAnchor="middle" y={R + 15}>
                   {v.name}
                 </text>

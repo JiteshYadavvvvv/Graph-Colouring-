@@ -1,5 +1,5 @@
 /**
- * Teaching content for the Learn Graph Coloring page: seven lessons with
+ * Teaching content for the How It Works page: seven lessons with
  * small illustrated examples, the algorithm in six steps, pseudocode, and
  * the algorithm's key properties.
  */
@@ -49,7 +49,7 @@ function SmallGraph({ highlight }) {
 }
 
 /**
- * "Learn Graph Coloring": seven short lessons, each with a small example.
+ * How It Works: seven short lessons, each with a small example.
  * The facts about India (Kerala – Tamil Nadu share a border) match the
  * backend dataset.
  */

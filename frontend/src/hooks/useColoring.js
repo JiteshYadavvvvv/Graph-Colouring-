@@ -13,7 +13,7 @@ import { NO_HIGHLIGHT, START, coloringAtCursor, highlightAt, nextCursor, previou
 
 /**
  * All application state lives here: the graph loaded from the backend (a
- * built-in dataset, or a custom graph from the Playground), the coloring
+ * built-in dataset, or a custom graph from the Graph Playground), the coloring
  * result returned by POST /api/color, and the playback cursor that replays
  * that result step by step.
  *
@@ -25,7 +25,7 @@ export function useColoring() {
   const [graph, setGraph] = useState(null);
   const [load, setLoad] = useState({ status: 'loading', error: null });
   const [reloadToken, setReloadToken] = useState(0);
-  // The last graph built in the Playground, as analyzed by the backend.
+  // The last graph built in the Graph Playground, as analyzed by the backend.
   const customGraph = useRef(null);
 
   const [strategy, setStrategyState] = useState('natural');
@@ -88,8 +88,8 @@ export function useColoring() {
   );
 
   /**
-   * Sends a Playground graph to the backend (POST /api/analyze) and makes it
-   * the active graph. Throws the API error so the Playground can show it.
+   * Sends a Graph Playground graph to the backend (POST /api/analyze) and
+   * makes it the active graph. Throws the API error so the caller can show it.
    */
   const loadCustomGraph = useCallback(
     async (spec) => {

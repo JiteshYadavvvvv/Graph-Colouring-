@@ -123,8 +123,8 @@ export default function StatisticsView({ cs, navigate }) {
       <div className="stat-grid four">
         <StatCard icon={Network} label="Vertices" value={V} hint="V" />
         <StatCard icon={Hash} label="Edges" value={E} hint="E" tone="secondary" delay={0.03} />
-        <StatCard icon={Palette} label="Colors Used" value={s ? usedColors(coloring).length : '—'} hint="C, by greedy" tone="accent" delay={0.06} />
-        <StatCard icon={Sigma} label="Minimum Colors" value={chromaticText(graph.chromatic)} hint={graph.chromatic?.exact ? 'χ, exact' : 'χ, bounds only'} delay={0.09} />
+        <StatCard icon={Palette} label="Colors Produced" value={s ? usedColors(coloring).length : '—'} hint="C, by the algorithm" tone="accent" delay={0.06} />
+        <StatCard icon={Sigma} label="Known Minimum" value={chromaticText(graph.chromatic)} hint={graph.chromatic?.exact ? 'χ, proven' : 'χ, bounds only'} delay={0.09} />
         <StatCard icon={GitBranch} label="Max / Min Degree" value={`${g.max_degree} / ${g.min_degree}`} hint="Δ / δ" delay={0.12} />
         <StatCard icon={Activity} label="Average Degree" value={g.average_degree} hint="2E / V" tone="secondary" delay={0.15} />
         <StatCard icon={ShieldAlert} label="Conflicts" value={verification ? verification.conflicts.length : '—'} hint="From /api/conflicts" tone={verification?.conflicts.length ? 'danger' : 'success'} delay={0.18} />

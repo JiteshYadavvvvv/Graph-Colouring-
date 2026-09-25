@@ -24,17 +24,17 @@ export default function ChromaticCard({ graph, colorsUsed }) {
   return (
     <div className="card chromatic-card">
       <div className="card-title-row">
-        <h3 className="card-title">Colors used vs. minimum possible</h3>
+        <h3 className="card-title">Colors produced vs. known minimum</h3>
         <Sigma size={18} className="muted" aria-hidden="true" />
       </div>
       <div className="chromatic-compare">
         <div>
-          <span className="eyebrow">Produced by greedy</span>
+          <span className="eyebrow">Colors produced by algorithm</span>
           <strong>{colorsUsed ?? '—'}</strong>
         </div>
         <div>
           <span className="eyebrow">
-            Minimum possible <span className="nocase">(χ)</span>
+            Known minimum <span className="nocase">(χ)</span>
           </span>
           <strong>{chromaticText(chi)}</strong>
           <span className="muted small">{known ? 'exact' : 'bounds only'}</span>

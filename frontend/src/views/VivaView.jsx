@@ -117,7 +117,7 @@ function Quiz() {
             ? 'Perfect. You are ready for the viva.'
             : ratio >= 0.7
               ? 'Well done. Review the questions you missed in the Questions tab.'
-              : 'Keep practicing: the Learn Graph Coloring page walks through every idea.'}
+              : 'Keep practicing: the How It Works page walks through every idea.'}
         </p>
         <Button icon={RotateCcw} onClick={restart}>
           Try again

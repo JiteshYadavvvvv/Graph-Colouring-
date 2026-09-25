@@ -136,7 +136,7 @@ const SHAPES = {
 
 /**
  * A graph to work on: a built-in dataset key ("india" or { dataset: "india" })
- * or a custom graph from the Playground ({ graph: adjacency, names }).
+ * or a custom graph from the Graph Playground ({ graph: adjacency, names }).
  */
 function sourceBody(source) {
   if (typeof source === 'string') return { dataset: source };
@@ -160,9 +160,9 @@ export function getGraph(dataset) {
   return graphCache.get(dataset);
 }
 
-/** Validates a Playground graph on the backend and returns it in dataset format. */
-export const analyzeGraph = ({ adjacency, names, layout }) =>
-  request('analyze', { method: 'POST', body: { graph: adjacency, names, layout }, shape: SHAPES.graph });
+/** Validates a Graph Playground graph on the backend and returns it in dataset format. */
+export const analyzeGraph = ({ adjacency, names, labels, layout }) =>
+  request('analyze', { method: 'POST', body: { graph: adjacency, names, labels, layout }, shape: SHAPES.graph });
 
 export const runColoring = (source, strategy = 'natural') =>
   request('color', { method: 'POST', body: { ...sourceBody(source), strategy }, shape: SHAPES.color });

@@ -42,13 +42,13 @@ function observation(results, chromatic) {
   const optimal = chromatic?.value;
   if (best === worst) {
     return `All three algorithms used ${best} colors on this graph${
-      optimal === best ? ', which is the minimum possible' : ''
+      optimal === best ? ', which equals the known minimum' : ''
     }. On other graphs (try the Bipartite (Crown) dataset) they can disagree.`;
   }
   const winners = results.filter((r) => r.colors_used === best).map((r) => r.name);
   const losers = results.filter((r) => r.colors_used === worst).map((r) => r.name);
   return `On this graph ${winners.join(' and ')} used ${best} colors while ${losers.join(' and ')} used ${worst}${
-    optimal === best ? ` (${best} is the minimum possible)` : ''
+    optimal === best ? ` (${best} is the known minimum)` : ''
   }. That is a property of this graph and vertex order, not a general ranking.`;
 }
 
@@ -98,7 +98,7 @@ export default function CompareView({ cs, navigate }) {
             <div className="card-title-row wrap">
               <h3 className="card-title">Results on {graph.name}</h3>
               <span className="muted small">
-                {state.data.vertices} vertices · {state.data.edges} edges · minimum possible χ ={' '}
+                {state.data.vertices} vertices · {state.data.edges} edges · known minimum χ ={' '}
                 {chromaticText(state.data.chromatic)}
                 {state.data.chromatic.exact ? '' : ' (bounds)'}
               </span>

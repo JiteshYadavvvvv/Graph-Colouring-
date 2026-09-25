@@ -2,10 +2,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { EXAMPLES } from '../content/examples';
 
 /** Size of the editor canvas (SVG units). */
-export const CANVAS = { width: 640, height: 430 };
-export const MAX_VERTICES = 30;
+export const CANVAS = { width: 800, height: 540 };
+export const MAX_VERTICES = 40; // enough for the India dataset (31 regions)
 export const MAX_NAME_LENGTH = 24;
-const MIN_GAP = 56; // closest two vertices may be placed automatically
+const MIN_GAP = 64; // closest two vertices may be placed automatically
+const MARGIN = 48;
 
 const pairKey = (a, b) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
@@ -22,10 +23,9 @@ function nextFreeName(vertices) {
 
 /** A position at least MIN_GAP away from every vertex, scanning a grid. */
 function freeSpot(vertices) {
-  const margin = 40;
   for (let gap = MIN_GAP; gap > 20; gap -= 8) {
-    for (let y = margin; y <= CANVAS.height - margin; y += gap) {
-      for (let x = margin; x <= CANVAS.width - margin; x += gap) {
+    for (let y = MARGIN; y <= CANVAS.height - MARGIN; y += gap) {
+      for (let x = MARGIN; x <= CANVAS.width - MARGIN; x += gap) {
         if (vertices.every((v) => Math.hypot(v.x - x, v.y - y) >= gap)) return { x, y };
       }
     }
@@ -36,21 +36,39 @@ function freeSpot(vertices) {
 function circleLayout(n) {
   const cx = CANVAS.width / 2;
   const cy = CANVAS.height / 2;
-  const radius = Math.min(cx, cy) - 50;
+  const radius = Math.min(cx, cy) - 60;
   return Array.from({ length: n }, (_, i) => ({
     x: Math.round(cx + radius * Math.cos(-Math.PI / 2 + (2 * Math.PI * i) / n)),
     y: Math.round(cy + radius * Math.sin(-Math.PI / 2 + (2 * Math.PI * i) / n)),
   }));
 }
 
-const EMPTY = { vertices: [], edges: [], nextId: 1 };
+/** Scale and center a set of points into the canvas, keeping their proportions. */
+function fitToCanvas(points) {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const w = Math.max(...xs) - minX || 1;
+  const h = Math.max(...ys) - minY || 1;
+  const scale = Math.min((CANVAS.width - 2 * MARGIN) / w, (CANVAS.height - 2 * MARGIN) / h);
+  const offX = (CANVAS.width - w * scale) / 2;
+  const offY = (CANVAS.height - h * scale) / 2;
+  return points.map((p) => ({ x: Math.round(offX + (p.x - minX) * scale), y: Math.round(offY + (p.y - minY) * scale) }));
+}
+
+const EMPTY = { vertices: [], edges: [], nextId: 1, version: 0, origin: { kind: 'custom', title: 'Custom Graph' }, originVersion: 0, runVersion: -1 };
 
 /**
- * Editable graph for the Graph Playground. Vertices have a stable ID
- * ("v1", "v2", …) that never changes, and a display name that can be renamed.
+ * Editable graph of the Graph Playground. Vertices have a stable ID that
+ * never changes ("v1", "v2", … or the dataset's own IDs such as "IN-MH"),
+ * a display name that can be renamed, and an optional short label.
  * Every operation validates its input and returns an error message (or null),
  * so an invalid graph is never built: no self-loops, no duplicate edges, no
  * duplicate names, no dangling edges.
+ *
+ * `version` counts structural changes (vertices, edges, names; not moves),
+ * so a coloring computed for an older version is never shown as current.
  */
 export function usePlayground() {
   const [state, setState] = useState(EMPTY);
@@ -59,10 +77,25 @@ export function usePlayground() {
   const byId = useMemo(() => Object.fromEntries(state.vertices.map((v) => [v.id, v])), [state.vertices]);
   const edgeSet = useMemo(() => new Set(state.edges.map(([a, b]) => pairKey(a, b))), [state.edges]);
 
+  const change = (updater) => setState((s) => ({ ...updater(s), version: s.version + 1 }));
+
+  /** Replace the whole graph, remembering where it came from. */
+  const replace = (vertices, edges, origin) => {
+    setState((s) => {
+      const version = s.version + 1;
+      let nextId = 1;
+      while (vertices.some((v) => v.id === `v${nextId}`)) nextId += 1;
+      return { vertices, edges, nextId, version, origin, originVersion: version, runVersion: -1 };
+    });
+    setSelected(null);
+  };
+
   const addVertex = useCallback(
     (position) => {
       if (state.vertices.length >= MAX_VERTICES) return `The Playground holds at most ${MAX_VERTICES} vertices.`;
-      const id = `v${state.nextId}`;
+      let n = state.nextId;
+      while (byId[`v${n}`]) n += 1;
+      const id = `v${n}`;
       const spot = position ?? freeSpot(state.vertices);
       const vertex = {
         id,
@@ -70,15 +103,15 @@ export function usePlayground() {
         x: Math.round(Math.min(Math.max(spot.x, 24), CANVAS.width - 24)),
         y: Math.round(Math.min(Math.max(spot.y, 24), CANVAS.height - 24)),
       };
-      setState((s) => ({ ...s, vertices: [...s.vertices, vertex], nextId: s.nextId + 1 }));
+      change((s) => ({ ...s, vertices: [...s.vertices, vertex], nextId: n + 1 }));
       setSelected(id);
       return null;
     },
-    [state],
+    [state, byId],
   );
 
   const removeVertex = useCallback((id) => {
-    setState((s) => ({
+    change((s) => ({
       ...s,
       vertices: s.vertices.filter((v) => v.id !== id),
       edges: s.edges.filter(([a, b]) => a !== id && b !== id),
@@ -93,12 +126,14 @@ export function usePlayground() {
       if (name.length > MAX_NAME_LENGTH) return `Names can be at most ${MAX_NAME_LENGTH} characters.`;
       const taken = state.vertices.some((v) => v.id !== id && v.name.toLowerCase() === name.toLowerCase());
       if (taken) return `Another vertex is already called “${name}”.`;
-      setState((s) => ({ ...s, vertices: s.vertices.map((v) => (v.id === id ? { ...v, name } : v)) }));
+      // A renamed vertex gets a label derived from its new name.
+      change((s) => ({ ...s, vertices: s.vertices.map((v) => (v.id === id ? { ...v, name, label: undefined } : v)) }));
       return null;
     },
     [state.vertices],
   );
 
+  // Moving a vertex changes the drawing, not the graph, so it keeps the version.
   const moveVertex = useCallback((id, x, y) => {
     const clampedX = Math.round(Math.min(Math.max(x, 24), CANVAS.width - 24));
     const clampedY = Math.round(Math.min(Math.max(y, 24), CANVAS.height - 24));
@@ -110,7 +145,7 @@ export function usePlayground() {
       if (!byId[a] || !byId[b]) return 'Choose two existing vertices.';
       if (a === b) return 'A vertex cannot be connected to itself (self-loops are not allowed).';
       if (edgeSet.has(pairKey(a, b))) return `${byId[a].name} and ${byId[b].name} are already connected.`;
-      setState((s) => ({ ...s, edges: [...s.edges, [a, b]] }));
+      change((s) => ({ ...s, edges: [...s.edges, [a, b]] }));
       return null;
     },
     [byId, edgeSet],
@@ -118,19 +153,15 @@ export function usePlayground() {
 
   const removeEdge = useCallback((a, b) => {
     const key = pairKey(a, b);
-    setState((s) => ({ ...s, edges: s.edges.filter(([x, y]) => pairKey(x, y) !== key) }));
+    change((s) => ({ ...s, edges: s.edges.filter(([x, y]) => pairKey(x, y) !== key) }));
   }, []);
 
-  const clear = useCallback(() => {
-    setState(EMPTY);
-    setSelected(null);
-  }, []);
+  const clear = useCallback(() => replace([], [], { kind: 'custom', title: 'Custom Graph' }), []);
 
   /** Random graph G(n, p): n vertices on a circle, each pair joined with probability p. */
   const randomGraph = useCallback((n, p) => {
     const count = Math.min(Math.max(Math.round(n), 2), MAX_VERTICES);
-    const positions = circleLayout(count);
-    const vertices = positions.map((pos, i) => ({
+    const vertices = circleLayout(count).map((pos, i) => ({
       id: `v${i + 1}`,
       name: String.fromCharCode(65 + (i % 26)) + (i >= 26 ? Math.floor(i / 26) + 1 : ''),
       ...pos,
@@ -141,33 +172,56 @@ export function usePlayground() {
         if (Math.random() < p) edges.push([vertices[i].id, vertices[j].id]);
       }
     }
-    setState({ vertices, edges, nextId: count + 1 });
-    setSelected(null);
+    replace(vertices, edges, { kind: 'random', title: `Random graph G(${count}, ${p})` });
   }, []);
 
+  /** One of the small application examples (content/examples.js). */
   const loadExample = useCallback((key) => {
     const example = EXAMPLES[key];
     if (!example) return;
+    const positions = fitToCanvas(example.vertices);
     const idOf = {};
     const vertices = example.vertices.map((v, i) => {
       idOf[v.name] = `v${i + 1}`;
-      return { id: `v${i + 1}`, name: v.name, x: v.x, y: v.y };
+      return { id: `v${i + 1}`, name: v.name, ...positions[i] };
     });
     const edges = example.edges.map(([a, b]) => [idOf[a], idOf[b]]);
-    setState({ vertices, edges, nextId: vertices.length + 1 });
-    setSelected(null);
+    replace(vertices, edges, { kind: 'example', key, title: example.title, hint: example.hint });
   }, []);
 
-  /** The graph in the API's format: adjacency list of IDs, names, positions. */
+  /** A built-in dataset, exactly as served by GET /api/graph/{key}. */
+  const loadDataset = useCallback((graph) => {
+    const positions = fitToCanvas(graph.vertices.map((v) => graph.layout[v]));
+    const vertices = graph.vertices.map((v, i) => ({
+      id: v,
+      name: graph.names?.[v] ?? v,
+      label: graph.labels?.[v],
+      ...positions[i],
+    }));
+    replace(vertices, graph.edges.map(([a, b]) => [a, b]), {
+      kind: 'dataset',
+      key: graph.key,
+      title: graph.name,
+      description: graph.description,
+      characteristics: graph.characteristics,
+    });
+  }, []);
+
+  /** Remember that the backend colored the graph as it is now. */
+  const markRun = useCallback(() => setState((s) => ({ ...s, runVersion: s.version })), []);
+
+  /** The graph in the API's format: adjacency list of IDs, names, labels, positions. */
   const toSpec = useCallback(() => {
     const adjacency = Object.fromEntries(state.vertices.map((v) => [v.id, []]));
     for (const [a, b] of state.edges) {
       adjacency[a].push(b);
       adjacency[b].push(a);
     }
+    const labels = Object.fromEntries(state.vertices.filter((v) => v.label).map((v) => [v.id, v.label]));
     return {
       adjacency,
       names: Object.fromEntries(state.vertices.map((v) => [v.id, v.name])),
+      labels: Object.keys(labels).length ? labels : undefined,
       layout: Object.fromEntries(state.vertices.map((v) => [v.id, { x: v.x, y: v.y }])),
     };
   }, [state]);
@@ -177,6 +231,10 @@ export function usePlayground() {
   return {
     vertices: state.vertices,
     edges: state.edges,
+    version: state.version,
+    origin: state.origin,
+    unmodified: state.version === state.originVersion,
+    colored: state.runVersion === state.version,
     byId,
     selected,
     setSelected,
@@ -189,6 +247,8 @@ export function usePlayground() {
     clear,
     randomGraph,
     loadExample,
+    loadDataset,
+    markRun,
     toSpec,
     degree,
   };

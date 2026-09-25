@@ -9,7 +9,7 @@ import Toggle from './Toggle';
 const MODES = [
   { value: 'map', label: 'Map', icon: MapIcon },
   { value: 'graph', label: 'Graph', icon: Network },
-  { value: 'split', label: 'Map + Graph', icon: Columns2 },
+  { value: 'split', label: 'Split', icon: Columns2 },
 ];
 
 /**

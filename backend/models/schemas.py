@@ -11,6 +11,7 @@ MAX_CUSTOM_EDGES = 600
 
 VertexId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.:\-]{1,32}$")]
 VertexName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+VertexLabel = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4)]
 Adjacency = Dict[VertexId, List[VertexId]]
 Strategy = Literal["natural", "largest_first", "dsatur"]
 
@@ -96,12 +97,14 @@ class AnalyzeRequest(BaseModel):
     """A custom graph to validate and describe (used by the Graph Playground)."""
     graph: Adjacency
     names: Optional[Dict[VertexId, VertexName]] = None
+    labels: Optional[Dict[VertexId, VertexLabel]] = Field(
+        None, description="Short labels drawn inside the nodes (derived from the names if omitted)")
     layout: Optional[Dict[VertexId, Point]] = None
 
     @model_validator(mode="after")
     def within_limits(self):
         check_custom_graph_size(self.graph)
-        for field in ("names", "layout"):
+        for field in ("names", "labels", "layout"):
             unknown = [v for v in (getattr(self, field) or {}) if v not in self.graph]
             if unknown:
                 raise ValueError(f"'{field}' mentions vertices that are not in the graph: {', '.join(unknown)}")
