@@ -112,7 +112,7 @@ export const VIVA_TOPICS = [
       {
         id: 'complexity',
         q: 'What is the time complexity?',
-        a: 'O(V + E). Every vertex is visited once and every adjacency-list entry is read once (2E entries). A vertex with d neighbors can see at most d colors, so its smallest free color is found within d + 1 tries. Extra space is O(V) for the colors. This app also records a step trace for the animation, which costs O(V·C) extra time and O(V + E) space.',
+        a: 'O(V + E). Every vertex is visited once and every adjacency-list entry is read once (2E entries). A vertex with d neighbors can see at most d colors, so its smallest free color is found within d + 1 tries. Extra space is O(V) for the colors. This app also records a step trace for the animation, which costs O(V·C) extra time and O(V + E + V·C) space.',
         live: (g) =>
           `For ${g.name}: V = ${g.statistics.vertices} and E = ${g.statistics.edges}, so the algorithm reads ${2 * g.statistics.edges} adjacency entries.`,
       },

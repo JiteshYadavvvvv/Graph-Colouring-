@@ -101,16 +101,21 @@ def iterate_edges(graph: Graph) -> Iterable[tuple]:
 
 
 def validate_graph(graph: Graph) -> None:
-    """Raise ValueError if the adjacency list is not a simple undirected graph."""
+    """Raise ValueError if the adjacency list is not a simple undirected graph.
+
+    One set of neighbors per vertex makes every membership test O(1), so the
+    whole check costs O(V + E).
+    """
+    neighbor_sets = {vertex: set(neighbors) for vertex, neighbors in graph.items()}
     for vertex, neighbors in graph.items():
-        if len(set(neighbors)) != len(neighbors):
+        if len(neighbor_sets[vertex]) != len(neighbors):
             raise ValueError(f"Vertex '{vertex}' lists the same neighbor twice")
         for neighbor in neighbors:
             if neighbor == vertex:
                 raise ValueError(f"Vertex '{vertex}' has a self-loop")
             if neighbor not in graph:
                 raise ValueError(f"'{vertex}' is adjacent to unknown vertex '{neighbor}'")
-            if vertex not in graph[neighbor]:
+            if vertex not in neighbor_sets[neighbor]:
                 raise ValueError(
                     f"Edge {vertex}–{neighbor} is missing its reverse direction "
                     f"(the graph must be undirected)"
@@ -164,10 +169,14 @@ def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural",
         }
 
     Time (natural / largest_first): O(V + E + V·C), where C is the number of
-    colors in use. The V·C term comes only from listing every available color
-    for the visualization; the coloring decision itself is O(V + E).
-    largest_first adds an O(V log V) sort. dsatur adds an O(V) scan per step
-    to find the most saturated vertex: O(V² + E) in total.
+    colors in use. The V·C term comes only from listing the blocked and
+    available colors for the visualization; the coloring decision itself is
+    O(V + E). largest_first adds an O(V log V) sort. dsatur adds an O(V) scan
+    per step to find the most saturated vertex: O(V² + E) in total.
+
+    Space: O(V + E + V·C) for the recorded steps (each stores the vertex's
+    neighbors and its blocked and available colors); the coloring itself
+    needs O(V).
     """
     if strategy not in ORDER_STRATEGIES:
         raise ValueError(f"Unknown ordering strategy '{strategy}'")
@@ -210,8 +219,11 @@ def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural",
             else:
                 uncolored_neighbors.append(neighbor)
 
-        # 2. The set of colors we are NOT allowed to use.
+        # 2. The set of colors we are NOT allowed to use. For the record it is
+        #    listed in increasing order by scanning the palette 1..C, which
+        #    costs O(C) instead of a sort.
         used_colors = set(neighbor_colors.values())
+        used_in_order = [c for c in range(1, colors_in_use + 1) if c in used_colors]
 
         # 3. Try colors 1, 2, 3, ... and take the first one not in used_colors.
         rejected_colors: List[int] = []
@@ -249,7 +261,7 @@ def greedy_coloring_with_steps(graph: Graph, strategy: str = "natural",
             "neighbors": neighbors,
             "neighbor_colors": neighbor_colors,
             "uncolored_neighbors": uncolored_neighbors,
-            "used_colors": sorted(used_colors),
+            "used_colors": used_in_order,
             "rejected_colors": rejected_colors,
             "available_colors": available_colors,
             "assigned_color": assigned_color,

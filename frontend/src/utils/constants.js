@@ -5,6 +5,7 @@ import {
   PencilRuler,
   GraduationCap,
   House,
+  Info,
   Lightbulb,
   Map as MapIcon,
   Network,
@@ -56,6 +57,7 @@ export const VIEWS = [
   { id: 'how', label: 'How It Works', icon: BookOpen },
   { id: 'applications', label: 'Applications', icon: Lightbulb },
   { id: 'viva', label: 'Viva Mode', icon: GraduationCap },
+  { id: 'about', label: 'About the Project', icon: Info },
   { id: 'team', label: 'Project Team', icon: Users },
 ];
 
@@ -65,7 +67,7 @@ export const NAV_GROUPS = [
   { label: 'Visualize', views: ['map', 'graph', 'playground'] },
   { label: 'Analyze', views: ['results', 'conflicts', 'stats', 'compare'] },
   { label: 'Learn', views: ['how', 'applications', 'viva'] },
-  { label: 'About', views: ['team'] },
+  { label: 'About', views: ['about', 'team'] },
 ];
 
 /**

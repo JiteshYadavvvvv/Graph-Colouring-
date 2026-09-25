@@ -214,7 +214,7 @@ def color_graph(request: ColorRequest):
         "strategy": request.strategy,
         "time_complexity": COMPLEXITY[request.strategy]["time"],
         "core_time_complexity": COMPLEXITY[request.strategy]["core_time"],
-        "space_complexity": "O(V + E)",
+        "space_complexity": "O(V + E + V·C)",
         "execution_ms": round(elapsed_ms, 4),
         **result["operations"],
     })

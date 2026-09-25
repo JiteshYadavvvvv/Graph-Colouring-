@@ -161,8 +161,9 @@ export default function StatisticsView({ cs, navigate }) {
               </li>
               <li>
                 <strong>What this app runs</strong>: the backend also records every decision so the browser can replay
-                it. Listing each vertex’s available colors adds O(V · C) time, and the recorded trace stores each
-                vertex’s neighbor list, O(V + E) space. The coloring decisions are unchanged.
+                it. Listing each vertex’s blocked and available colors adds O(V · C) time, and the recorded trace
+                stores each vertex’s neighbor list and those colors, O(V + E + V · C) space. The coloring decisions are
+                unchanged.
               </li>
             </ul>
             <div className="table-scroll">

@@ -49,21 +49,37 @@ Color   → Label assigned to a vertex (1, 2, 3, …)
 17. [Production Deployment](#17-production-deployment)
 18. [Screenshots](#18-screenshots)
 19. [Viva Questions](#19-viva-questions)
-20. [Future Scope](#20-future-scope)
-21. [References and Credits](#21-references-and-credits)
-22. [Project Team](#22-project-team)
+20. [Limitations](#20-limitations)
+21. [Future Scope](#21-future-scope)
+22. [References and Credits](#22-references-and-credits)
+23. [Project Team](#23-project-team)
 
 ---
 
 ## 1. Project Overview
 
+**Project title:** Interactive Map Coloring System Using Graph Coloring
+
+**Problem.** Map coloring is a practical way to introduce graph coloring, but conventional explanations are often static.
+
+**Approach.** Represent geographical regions as vertices and shared boundaries as edges, then apply graph-coloring algorithms to generate and visualize valid color assignments.
+
 **Map coloring** asks for a color for each region of a map so that no two regions sharing a border get the same color. If each region is a *vertex* and each shared border is an *edge*, map coloring becomes **graph vertex coloring**, one of the classic problems of graph theory.
 
-The underlying problems are well known; this project's contribution is the implementation and its integration:
+### Key contributions of this implementation
 
-* interactive geographical visualization, graph representation, and backend algorithm execution;
-* step-by-step visualization, conflict detection, and map/graph synchronization;
-* an educational Viva Mode, multiple graph datasets, and an offline-capable architecture.
+Map coloring, graph coloring, greedy coloring, Welsh–Powell and DSATUR are established topics in graph theory. The items below are features and implementation contributions of this project, not new discoveries.
+
+1. **Interactive geographical visualization**: the 31 mainland states and union territories of India, drawn from real boundary data as a local SVG map, with hover details and neighbor highlighting.
+2. **Synchronized map and graph representations**: a region and its vertex share one stable ID, so selections, colors and highlights stay in step between the map and the graph.
+3. **Step-by-step coloring execution**: Auto Play, Step-by-Step and Instant modes replay the decisions recorded by the backend, five phases per vertex, with narration and highlighted pseudocode.
+4. **Conflict detection and simulation**: every coloring is checked edge by edge on the backend; *Simulate Conflict* breaks a coloring on purpose, *Fix Coloring* runs the algorithm again.
+5. **Multiple graph datasets**: the India map, five textbook graphs, and custom graphs built in the Playground.
+6. **Graph statistics**: vertices, edges, degrees, density, colors produced, known minimum (χ), conflicts, operation counts and execution time, computed from the actual graph and run.
+7. **Educational / viva mode**: illustrated lessons, real-world applications, and a Viva Mode with questions, answers and a scored quiz.
+8. **Offline-capable local map/data architecture**: map geometry, datasets and icons are bundled; no CDN, map tiles, web fonts or external API.
+
+The app's **About the Project** page (sidebar → About) presents this overview together with the architecture, technology stack, algorithm documentation, limitations and future scope.
 
 Concretely, the system:
 
@@ -99,6 +115,7 @@ Applied to a political map, the question becomes: *how can the states of India b
 | Area | What it does |
 |---|---|
 | **Institutional header** | Home opens with the AIT logo, *Army Institute of Technology, Pune*, *Department of Computer Engineering*, the project name and its supporting line |
+| **About the Project** | A page (sidebar → About) with the problem, approach and key contributions, a request-pipeline architecture diagram, the technology stack, the greedy algorithm's documentation (input, output, steps, pseudocode, the complexity of this implementation, limitations), the project's limitations and its future scope |
 | **Project Team** | A page (sidebar → About) with a card per team member: photo, name, department and institution |
 | **Header** | AIT logo and institute name, project title, dataset selector, **Export Report**, **Viva Mode** and **Reset Experiment** buttons |
 | **Footer** | On the Home and Project Team pages: the project's name and purpose, where it was built, links to the main sections, a large *CHROMA* wordmark, and © 2026 |
@@ -119,13 +136,44 @@ Applied to a political map, the question becomes: *how can the states of India b
 
 ## 5. Tech Stack
 
-**Backend:** Python 3.10+ (3.12 on Vercel), FastAPI, Pydantic v2, Uvicorn (local server only). All graph algorithms are implemented by hand. No NetworkX or other graph library is used.
+Only technologies the code actually uses.
 
-**Frontend:** React 18, Vite 8, plain JavaScript, native SVG, plain CSS, `framer-motion` (animation), `lucide-react` (icons). No CSS framework, no CDN, no web fonts, no map service: everything is bundled locally.
+| Area | Technologies |
+|---|---|
+| **Frontend** | React 18; JavaScript (ES modules, JSX; no TypeScript); hand-written CSS with custom properties (no CSS framework); Framer Motion 11 (animation); Lucide React (icons); hash-based navigation written in `App.jsx` (no router library) |
+| **Backend** | Python 3.12 on Vercel (`backend/.python-version`; 3.10+ locally); FastAPI (HTTP API, CORS, interactive docs at `/docs`); Pydantic 2 (request and response validation); Uvicorn (local server only) |
+| **Algorithm** | Hand-written Python, standard library only (no NetworkX or other graph library): greedy coloring with natural, largest-first and DSATUR orders plus a step trace; classic Welsh–Powell and DSATUR for the comparison; exact chromatic number by bounded backtracking; conflict detection |
+| **Visualization** | Inline SVG rendered by React (`IndiaMapSVG`, `GraphSVG`, `GraphEditor`); CSS bar charts for color distributions; no charting or mapping library |
+| **Data** | India boundaries from [udit-001/india-maps-data](https://github.com/udit-001/india-maps-data), converted offline into SVG paths (`frontend/src/data/indiaGeometry.js`); graph datasets as Python adjacency lists in `backend/data/`; custom graphs in browser memory only; no database |
+| **Deployment** | Vercel: the backend as a FastAPI project (`backend/vercel.json`), the frontend as a static Vite build; `VITE_API_URL` (build time) and optional `FRONTEND_URL` (CORS) |
+| **Development tools** | Vite 8 (dev server with an `/api` proxy, production bundler); Node.js 20.19+ / 22.12+ and npm; Python venv and pip; `unittest` (backend tests, including HTTP tests against a real Uvicorn server); Shapely (only to regenerate the map geometry); Git |
 
-**Testing:** Python `unittest` (algorithms and HTTP API, standard library + uvicorn only) and a Playwright end-to-end script run against the real application.
+Nothing is loaded from a CDN, font service or map service: everything the browser needs is bundled.
 
 ## 6. System Architecture
+
+The path of one coloring request:
+
+```
+React / Vite            browser: hooks/useColoring.js → api/client.js
+     ↓   POST /api/color  { dataset | graph, strategy }
+FastAPI                 main.py; Pydantic (models/schemas.py) validates the request
+     ↓
+Graph Dataset           backend/data/*.py, or the custom graph sent by the Playground
+     ↓
+Adjacency List          { "IN-MH": ["IN-GJ", "IN-MP", …] }, checked to be simple and undirected
+     ↓
+Coloring Engine         greedy_coloring_with_steps(): coloring + one record per step
+     ↓
+Conflict Detection      find_conflicts(), is_valid_coloring()
+     ↓
+JSON Result             ColorResponse: coloring, order, steps, conflicts, validity, statistics
+     ↓
+React Visualization     replays the steps on the SVG map, graph and panels;
+                        re-checks the coloring on screen with POST /api/conflicts
+```
+
+Modules:
 
 ```
 ┌────────────────────────────── Browser (React + Vite) ──────────────────────────────┐
@@ -180,7 +228,13 @@ Why an adjacency list: map graphs are sparse (India: E = 60, while V(V−1)/2 = 
 
 ## 8. Greedy Coloring Algorithm
 
-Greedy coloring colors one vertex at a time and never changes a color once assigned:
+Greedy coloring colors one vertex at a time and never changes a color once assigned.
+
+**Input:** an undirected simple graph as an adjacency list (vertex ID → neighbor IDs); a vertex order (`natural`, `largest_first` or `dsatur`); optional display names, used only in the step explanations.
+
+**Output:** a coloring (vertex ID → color 1, 2, 3, …) with different colors on the two ends of every edge; the number of colors used and the visiting order; one record per step (colored neighbors, blocked and available colors, assigned color); and the conflict check (conflicting edges, validity).
+
+**Steps:**
 
 1. **Select** the next vertex.
 2. **Inspect** its adjacent vertices.
@@ -216,6 +270,14 @@ The three supported vertex orders (`strategy`):
 | 5 | E | C=2, D=1 | 1, 2 | **3** |
 
 Three colors; C, D, E form a triangle, so 3 is the minimum and greedy is optimal here. `test_mini_tutorial_graph_walkthrough` checks these exact values.
+
+**Limitations of greedy coloring:**
+
+* The number of colors depends on the vertex order.
+* It does not guarantee the minimum: on the crown graph (χ = 2), greedy in dataset order uses 4 colors, while DSATUR finds 2.
+* Its only general guarantee is at most Δ + 1 colors.
+* It never revises a color: no look-ahead and no backtracking.
+* DSATUR is implemented with a linear scan per step, O(V²): fine at this project's graph sizes, not for very large graphs.
 
 ## 9. Algorithm Pseudocode
 
@@ -253,11 +315,12 @@ Let **V** = vertices, **E** = edges, **Δ** = maximum degree, **C** = colors in 
 | **Greedy coloring, natural order** | **O(V + E)** | |
 | Welsh–Powell order | O(V log V + E) | plus one sort by degree |
 | DSATUR order | O(V² + E) | an O(V) scan for the most saturated vertex before each step |
-| Step trace for the animation | + O(V·C) | listing every available color 1…C+1 at each step |
+| Step trace for the animation | + O(V·C) | listing the blocked and available colors (up to C + 1) at each step |
+| Input validation | O(V + E) | one set of neighbors per vertex, so each membership test is O(1) |
 | Conflict detection | O(V + E) | each edge checked once |
 | Exact chromatic number | exponential in the worst case | backtracking; bounded by a node and time budget |
 
-So the core algorithm is **O(V + E)**, as expected. The traced version the app actually runs is O(V + E + V·C) for the natural order; since C ≤ Δ + 1 this is at most O(V·Δ). The API reports the complexity of the strategy used (`statistics.time_complexity`).
+So the core algorithm is **O(V + E)**, as a textbook analysis gives: the loop in `greedy_coloring` matches it. The traced version the app actually runs is O(V + E + V·C) for the natural order; since C ≤ Δ + 1 this is at most O(V·Δ). The API reports the complexity of the strategy used (`statistics.time_complexity`).
 
 Measured on India (natural order): **120 neighbor checks (= 2E)** and **62 candidate-color tests** for 31 vertices. The Statistics page shows these counts for every run.
 
@@ -269,7 +332,7 @@ Measured on India (natural order): **120 neighbor checks (= 2E)** and **62 candi
 | Coloring | **O(V)** |
 | `used` set for one vertex | O(Δ) |
 | **Greedy coloring, extra space** | **O(V)** |
-| Step trace (for the replay) | O(V + E): each step stores the vertex's neighbor list |
+| Step trace (for the replay) | O(V + E + V·C): each step stores the vertex's neighbors and its blocked and available colors |
 | DSATUR saturation sets | O(V + E) |
 
 ## 12. Dataset Structure
@@ -376,7 +439,7 @@ Validates a custom graph (from the Graph Playground) and returns it in the same 
   }],
   "valid": true, "conflicts": [],
   "statistics": { "colors_used": 4, "conflicts": 0, "time_complexity": "O(V + E + V·C)",
-                  "core_time_complexity": "O(V + E)", "space_complexity": "O(V + E)",
+                  "core_time_complexity": "O(V + E)", "space_complexity": "O(V + E + V·C)",
                   "neighbor_checks": 120, "color_checks": 62, "execution_ms": 0.1, "...": "graph statistics" }
 }
 ```
@@ -432,13 +495,14 @@ frontend/src/
 │                            ChromaticCard, ExportMenu, ExportPanel, InstitutionalHeader,
 │                            InstituteLogo, TeamCard, SiteFooter (Home and Team pages), …
 ├── views/                   Home, Datasets, Map, Graph, Playground, Results, Conflicts,
-│                            Statistics, Compare, HowItWorks, Applications, Viva, Team
+│                            Statistics, Compare, HowItWorks, Applications, Viva, About, Team
 ├── content/                 identity (name, tagline, institution, credits), team, learning
-│                            material, viva questions and quiz, applications, Playground examples
+│                            material, viva questions and quiz, applications, Playground examples,
+│                            about (overview, architecture, stack, limitations, future scope)
 ├── assets/branding/         ait-logo.png, the official institute logo (see the README there)
 ├── data/indiaGeometry.js    generated state boundaries (SVG paths, label anchors)
 ├── utils/                   constants (palette, phases, speeds), replay (cursor → coloring and
-│                            highlight), status summaries, helpers, export builders
+│                            highlight), status summaries, graph metrics, helpers, export builders
 └── styles/                  variables.css (tokens), globals.css, features.css, animations.css
 
 frontend/public/team/        team photos (jitesh.jpg, jatin.jpg, harsh.jpg, neelendu.jpg);
@@ -491,11 +555,11 @@ cd backend
 python -m unittest discover -s tests -v
 ```
 
-42 tests, standard library + uvicorn only:
+44 tests, standard library + uvicorn only:
 
-* `test_coloring.py` (16): greedy on empty, single-vertex, triangle and complete graphs K1–K7; every dataset with all three strategies (valid, ≤ Δ + 1 colors); traced steps equal the plain algorithm; the tutorial walkthrough; stable IDs, names and labels; known India borders; conflict detection.
+* `test_coloring.py` (17): greedy on empty, single-vertex, triangle and complete graphs K1–K7; every dataset with all three strategies (valid, ≤ Δ + 1 colors); traced steps equal the plain algorithm; recorded used colors are the sorted neighbor colors; the tutorial walkthrough; stable IDs, names and labels; known India borders; conflict detection.
 * `test_algorithms.py` (12): Welsh–Powell equals largest-first greedy (datasets + 40 random graphs); DSATUR validity, bipartite optimality, and that every DSATUR step picks a most-saturated vertex; the crown-graph counterexample; chromatic numbers of known graphs (cycles, Petersen graph, all datasets) and agreement with brute force on 80 random graphs; honest "unknown" when the search budget runs out.
-* `test_api.py` (14): starts the real app with uvicorn and calls every endpoint over HTTP, including 404/422 error cases, custom graphs, invalid graphs (self-loop, one-way edge, unknown vertex, duplicate edge, empty graph, bad ID, too large) and the CORS preflight.
+* `test_api.py` (15): starts the real app with uvicorn and calls every endpoint over HTTP, including 404/422 error cases, custom graphs with optional node labels, invalid graphs (self-loop, one-way edge, unknown vertex, duplicate edge, empty graph, bad ID, too large) and the CORS preflight.
 
 ## 17. Production Deployment
 
@@ -522,7 +586,7 @@ The frontend and backend are deployed as **two separate Vercel projects**. Deplo
 | ![Step by step](docs/screenshots/step-by-step.png) **Step-by-step replay**: step 18, Maharashtra; neighbors block colors 1–3, so it takes color 4 (map and graph in sync) | ![Conflict](docs/screenshots/conflict.png) **Conflict detection**: a simulated conflict found by the backend, shown with outline, ⚠ icon and text |
 | ![Results](docs/screenshots/results.png) **Results**: analytics, color distribution, χ comparison, export | ![Compare](docs/screenshots/compare.png) **Compare**: on the crown graph DSATUR needs 2 colors, greedy and Welsh–Powell 4 |
 | ![Playground](docs/screenshots/playground.png) **Graph Playground**: the K5 demonstration, colored in place | ![Viva](docs/screenshots/viva.png) **Viva Mode**: questions with answers and a quiz |
-| ![Project Team](docs/screenshots/team.png) **Project Team**: the four team members | |
+| ![About the Project](docs/screenshots/about.png) **About the Project**: overview, architecture, stack, algorithm, limitations | ![Project Team](docs/screenshots/team.png) **Project Team**: the four team members |
 
 ## 19. Viva Questions
 
@@ -532,7 +596,7 @@ The app's **Viva Mode** groups 20 questions into six topics (graph basics, from 
 2. **Why are states represented as vertices?** Coloring only cares about which regions must differ, not their shape; each state needs exactly one color, so it is one vertex.
 3. **Why are neighboring states connected by edges?** An edge encodes the constraint "these two must differ". States touching only at a point are not neighbors.
 4. **What is greedy coloring?** Visit vertices one by one and give each the smallest color not used by its colored neighbors; never revise a decision.
-5. **What is the time complexity?** O(V + E): each vertex once, each adjacency entry once, and the smallest free color within deg(v) + 1 tries. Extra space O(V). (This app's traced version adds O(V·C) time and O(V + E) space for the replay.)
+5. **What is the time complexity?** O(V + E): each vertex once, each adjacency entry once, and the smallest free color within deg(v) + 1 tries. Extra space O(V). (This app's traced version adds O(V·C) time and O(V + E + V·C) space for the replay.)
 6. **Can greedy always produce the minimum number of colors?** No. The crown graph needs 2 colors, but greedy in the order U1, V1, U2, V2, … uses 4. Greedy guarantees at most Δ + 1.
 7. **What is a conflict?** An edge whose endpoints share a color. A coloring is valid exactly when there are none; checking takes O(V + E).
 8. **What is a chromatic number?** χ(G), the minimum number of colors for a valid coloring. Computing it is NP-hard; greedy only gives an upper bound. For India, χ = 4.
@@ -551,24 +615,32 @@ The app's **Viva Mode** groups 20 questions into six topics (graph basics, from 
 
 Further questions worth preparing: What is an adjacency list, and why use it instead of a matrix? (O(V + E) vs O(V²) space for a sparse graph.) What is an independent set? (Each color class is one.) What does greedy do on a complete graph Kn? (n colors, which is optimal.) Is there always a vertex order for which greedy is optimal? (Yes: order the vertices class by class following an optimal coloring.)
 
-## 20. Future Scope
+## 20. Limitations
 
-* **Exact coloring for larger graphs**: integer programming or SAT-based solvers to find χ where backtracking is too slow.
-* **More heuristics**: Recursive Largest First (RLF), tabu search or simulated annealing, compared on the same page.
-* **More maps**: districts of a state, or other countries, generated with the same `tools/build_india_map.py` pipeline.
-* **Edge and list coloring**, and weighted variants such as timetabling with room capacities.
-* **Persistent Playground graphs** (save/load as JSON) and sharing through URLs.
-* **Performance mode** for graphs with thousands of vertices (canvas/WebGL rendering, a heap-based DSATUR in O((V + E) log V)).
+* **Greedy is not optimal.** Greedy coloring does not necessarily produce the minimum number of colors (the chromatic number) for arbitrary graphs. The app always shows the colors produced and the known minimum separately.
+* **Known minimum within a budget.** The exact chromatic number comes from a backtracking search limited to 200,000 search nodes and 0.4 s per graph. When the limit is reached (for example on a larger custom graph), only proven bounds are shown.
+* **Map accuracy depends on the bundled data.** Boundaries come from the bundled udit-001/india-maps-data dataset, simplified to about 3 km precision (≈ 75 KB of geometry). They follow the source dataset, which draws India's official extent (Jammu and Kashmir includes PoK; Ladakh includes Gilgit-Baltistan and Aksai Chin). The map is a visualization, not an official survey map.
+* **Modeling choices for the India graph.** Two regions are adjacent when they share a land border of at least about 10 km, so point contacts are not edges. Chandigarh, Puducherry, Dadra & Nagar Haveli and Daman & Diu, Lakshadweep, and the Andaman & Nicobar Islands are drawn but are not vertices.
+* **One geographic dataset.** Only India has map shapes; the other graphs are shown as node-link diagrams.
+* **Educational scale.** The application is primarily an educational visualization system. Custom graphs are limited to 60 vertices and 600 edges (40 vertices in the Playground editor), and every vertex and edge is drawn as SVG, so much larger graphs would need visualization optimization.
+* **Requires the backend.** Colors are computed only by the FastAPI backend; the browser alone cannot color a graph, so offline use means running both parts locally.
+* **No persistence.** Custom graphs, results and dragged node positions live in browser memory and are lost on reload. There is no experiment history.
+* **Timings are indicative.** Execution times are measured on the server for graphs of at most a few dozen vertices, so they are in microseconds and vary with machine load. They illustrate the algorithms; they are not a benchmark.
 
-Current limitations:
+## 21. Future Scope
 
-* Boundaries are simplified to about 3 km precision (≈ 75 KB of geometry). They follow the source dataset, which draws India's official extent (Jammu and Kashmir includes PoK; Ladakh includes Gilgit-Baltistan and Aksai Chin).
-* Only the India dataset has map shapes; other graphs are shown as node-link diagrams.
-* Custom graphs live in the browser session only and are limited to 60 vertices (40 in the Playground editor).
-* The exact chromatic number is only guaranteed within the search budget; beyond it the app shows proven bounds.
-* Dragged node positions reset when the page reloads or the dataset changes.
+Possible extensions. **None of these is implemented in the current version.**
 
-## 21. References and Credits
+* **Additional coloring algorithms**: Recursive Largest First, tabu search or simulated annealing, compared on the same page; SAT or integer-programming solvers for exact results on larger graphs.
+* **Larger graph datasets**: graphs with thousands of vertices, with canvas or WebGL rendering and a heap-based DSATUR (O((V + E) log V)).
+* **User-created datasets**: saving Playground graphs to a file and loading them again, or sharing them through a link.
+* **Persistent experiment history**: keeping past runs so results can be compared across sessions.
+* **Advanced graph analysis**: largest cliques, independent sets, planarity checks, and edge or list coloring.
+* **Accessibility improvements**: testing with screen readers and color-vision-deficiency simulations, and narration that can be read aloud.
+* **Additional geographic datasets**: districts of a state, or other countries, generated with the same `tools/build_india_map.py` pipeline.
+* **Classroom / teaching mode**: instructor-led sessions in which a class follows one run and answers quiz questions together.
+
+## 22. References and Credits
 
 This project implements and visualizes well-known results; it does not claim them as its own.
 
@@ -581,7 +653,7 @@ This project implements and visualizes well-known results; it does not claim the
 
 Developed as an academic project in the Department of Computer Engineering, Army Institute of Technology, Pune.
 
-## 22. Project Team
+## 23. Project Team
 
 Department of Computer Engineering, Army Institute of Technology, Pune.
 

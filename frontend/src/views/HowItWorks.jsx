@@ -257,8 +257,8 @@ export default function HowItWorks() {
               Δ colors, <strong>O(V)</strong>.
             </li>
             <li className="muted">
-              The app’s backend additionally records each step for the animation, which adds O(V·C) time and O(V + E)
-              space (see the Statistics page).
+              The app’s backend additionally records each step for the animation, which adds O(V·C) time and
+              O(V + E + V·C) space (see the Statistics page).
             </li>
           </ul>
         </div>

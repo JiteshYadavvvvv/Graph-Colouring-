@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar';
 import { useColoring } from './hooks/useColoring';
 import { usePlayground } from './hooks/usePlayground';
 import { DEFAULT_DATASET, VIEWS } from './utils/constants';
+import AboutView from './views/AboutView';
 import ApplicationsView from './views/ApplicationsView';
 import CompareView from './views/CompareView';
 import ConflictsView from './views/ConflictsView';
@@ -36,11 +37,12 @@ const VIEW_COMPONENTS = {
   how: HowItWorks,
   applications: ApplicationsView,
   viva: VivaView,
+  about: AboutView,
   team: TeamView,
 };
 
 // Pages that work without a loaded graph (they don't depend on the backend).
-const STANDALONE = new Set(['how', 'applications', 'playground', 'viva', 'team']);
+const STANDALONE = new Set(['how', 'applications', 'playground', 'viva', 'about', 'team']);
 
 /** Troubleshooting hint for developers; production shows none. */
 function devHint(error) {

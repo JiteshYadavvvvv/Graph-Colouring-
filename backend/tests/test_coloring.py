@@ -82,6 +82,13 @@ class GreedyColoringTests(unittest.TestCase):
             self.assertEqual(step["rejected_colors"],
                              list(range(1, step["assigned_color"])))
 
+    def test_used_colors_are_the_sorted_neighbor_colors(self):
+        for key, dataset in DATASETS.items():
+            for strategy in ("natural", "largest_first", "dsatur"):
+                for step in greedy_coloring_with_steps(dataset["adjacency"], strategy)["steps"]:
+                    self.assertEqual(step["used_colors"],
+                                     sorted(set(step["neighbor_colors"].values())), key)
+
     def test_mini_tutorial_graph_walkthrough(self):
         result = greedy_coloring_with_steps(DATASETS["mini"]["adjacency"])
         self.assertEqual(result["coloring"], {"A": 1, "B": 2, "C": 2, "D": 1, "E": 3})

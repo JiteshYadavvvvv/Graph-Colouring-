@@ -7,7 +7,7 @@ const LABELS = Object.fromEntries(VIEWS.map((v) => [v.id, v.label]));
 
 const COLUMNS = [
   { title: 'Platform', views: ['home', 'map', 'graph', 'playground', 'compare'] },
-  { title: 'Learn', views: ['how', 'applications', 'viva', 'team'] },
+  { title: 'Learn', views: ['how', 'applications', 'viva', 'about', 'team'] },
 ];
 
 /**
