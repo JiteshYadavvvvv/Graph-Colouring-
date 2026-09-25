@@ -10,6 +10,7 @@ import os
 import time
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -49,6 +50,62 @@ app = FastAPI(
     version="2.0.0",
 )
 
+# Legitimate requests are small: the largest custom graph the API accepts
+# (60 vertices, 600 edges) is about 50 KB of JSON. Larger bodies are refused
+# before they are read into memory and parsed.
+MAX_BODY_BYTES = 256 * 1024
+TOO_LARGE = f"The request body is too large (limit {MAX_BODY_BYTES // 1024} KB)."
+
+
+class BodySizeLimit:
+    """ASGI middleware: answer 413 when a request body exceeds MAX_BODY_BYTES,
+    whether the size is declared (Content-Length) or only seen while streaming."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        declared = dict(scope["headers"]).get(b"content-length", b"")
+        if declared.isdigit() and int(declared) > MAX_BODY_BYTES:
+            await self._discard(receive)
+            await JSONResponse({"detail": TOO_LARGE}, status_code=413)(scope, receive, send)
+            return
+        received = 0
+
+        async def limited_receive():
+            nonlocal received
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > MAX_BODY_BYTES:
+                    raise HTTPException(status_code=413, detail=TOO_LARGE)
+            return message
+
+        await self.app(scope, limited_receive, send)
+
+    @staticmethod
+    async def _discard(receive, cap=16 * 1024 * 1024):
+        """Read and drop the refused body (up to `cap`), so the client finishes
+        sending and can read the 413 instead of seeing a reset connection."""
+        seen = 0
+        while seen <= cap:
+            message = await receive()
+            if message["type"] != "http.request":
+                return
+            seen += len(message.get("body", b""))
+            if not message.get("more_body", False):
+                return
+
+
+def _list_some(items, limit=10):
+    """'a, b, c' for a short list; the first `limit` and a count otherwise."""
+    shown = ", ".join(str(item)[:40] for item in items[:limit])
+    return shown if len(items) <= limit else f"{shown} and {len(items) - limit} more"
+
+
 # The Vite dev server proxies /api, so local development needs no CORS. A
 # deployed frontend calls the API from another origin: set FRONTEND_URL to
 # that origin (comma-separated for several, e.g. production + a custom domain).
@@ -60,6 +117,9 @@ FRONTEND_ORIGINS = [
     if origin.strip()
 ]
 
+# Added before CORS so that CORS is the outer layer: a 413 still carries the
+# CORS headers and the browser can show the real reason.
+app.add_middleware(BodySizeLimit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=FRONTEND_ORIGINS or ["*"],
@@ -75,6 +135,17 @@ COMPLEXITY = {
     "largest_first": {"time": "O(V log V + E + V·C)", "core_time": "O(V log V + E)"},
     "dsatur": {"time": "O(V² + E)", "core_time": "O(V² + E)"},
 }
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request(request: Request, exc: RequestValidationError):
+    # Say what is wrong and where, without echoing the input back: it can be
+    # large, and values such as NaN cannot even be encoded as JSON.
+    errors = [
+        {"type": e["type"], "loc": [part[:40] if isinstance(part, str) else part for part in e["loc"]], "msg": e["msg"]}
+        for e in exc.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": errors})
 
 
 @app.exception_handler(Exception)
@@ -93,7 +164,7 @@ def _require_dataset(key: str) -> dict:
         available = ", ".join(k for k, d in DATASETS.items() if d["listed"])
         raise HTTPException(
             status_code=404,
-            detail=f"Dataset '{key}' does not exist. Available datasets: {available}.",
+            detail=f"Dataset '{key[:40]}' does not exist. Available datasets: {available}.",
         )
 
 
@@ -241,7 +312,7 @@ def check_conflicts(request: ConflictRequest):
     if unknown:
         raise HTTPException(
             status_code=422,
-            detail=f"Coloring mentions vertices that are not in the graph: {', '.join(unknown)}",
+            detail=f"Coloring mentions vertices that are not in the graph: {_list_some(unknown)}",
         )
 
     conflicts = find_conflicts(graph, request.coloring)

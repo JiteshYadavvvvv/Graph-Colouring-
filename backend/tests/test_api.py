@@ -182,6 +182,57 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(colors, {"greedy": 4, "welsh_powell": 4, "dsatur": 2})
         self.assertEqual(body["chromatic"]["value"], 2)
 
+    # ---- Hostile or malformed input ----
+    def test_layout_must_be_finite_numbers(self):
+        for literal in (b"NaN", b"Infinity"):
+            request = urllib.request.Request(
+                self.base + "/api/analyze",
+                data=b'{"graph": {"a": []}, "layout": {"a": {"x": ' + literal + b', "y": 0}}}',
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with self.assertRaises(urllib.error.HTTPError) as caught:
+                urllib.request.urlopen(request, timeout=10)
+            self.assertEqual(caught.exception.code, 422)
+
+    def test_error_messages_do_not_echo_huge_input(self):
+        coloring = {f"k{i}": 1 for i in range(5000)}
+        status, body = self.call("/api/conflicts", {"dataset": "india", "coloring": coloring})
+        self.assertEqual(status, 422)
+        self.assertIn("and 4990 more", body["detail"])
+        self.assertLess(len(body["detail"]), 300)
+        status, _ = self.call("/api/color", {"dataset": "x" * 500})
+        self.assertEqual(status, 422)
+        status, body = self.call("/api/graph/" + "y" * 500)
+        self.assertEqual(status, 404)
+        self.assertLess(len(body["detail"]), 200)
+
+    def test_oversized_body_is_refused_with_413(self):
+        padding = "x" * 300_000
+        request = urllib.request.Request(
+            self.base + "/api/color",
+            data=json.dumps({"dataset": "india", "pad": padding}).encode(),
+            headers={"Content-Type": "application/json", "Origin": "https://example.com"},
+            method="POST",
+        )
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request, timeout=10)
+        self.assertEqual(caught.exception.code, 413)
+        self.assertIn("too large", json.loads(caught.exception.read())["detail"])
+        # CORS wraps the limit, so a browser can read the reason.
+        self.assertIsNotNone(caught.exception.headers["access-control-allow-origin"])
+
+    def test_streamed_body_without_length_is_limited_too(self):
+        import http.client
+        host, port = self.base.removeprefix("http://").split(":")
+        connection = http.client.HTTPConnection(host, int(port), timeout=10)
+        chunks = (b"x" * 65536 for _ in range(6))  # 384 KB, no Content-Length
+        connection.request("POST", "/api/color", body=chunks,
+                           headers={"Content-Type": "application/json"}, encode_chunked=True)
+        response = connection.getresponse()
+        self.assertEqual(response.status, 413)
+        connection.close()
+
     def test_cors_preflight(self):
         request = urllib.request.Request(self.base + "/api/color", method="OPTIONS", headers={
             "Origin": "https://example.com",

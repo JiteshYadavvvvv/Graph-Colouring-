@@ -3,3 +3,8 @@ __pycache__/
 *.pyc
 frontend/node_modules/
 frontend/dist/
+
+# Local environment overrides and Vercel CLI state (never commit these)
+.env.local
+.env.*.local
+.vercel/

@@ -375,7 +375,7 @@ The small union territories (Chandigarh, Puducherry, Dadra & Nagar Haveli and Da
 
 Base URL (local): `http://127.0.0.1:8000`. Interactive OpenAPI docs: `/docs`.
 
-Errors are JSON: **404** for an unknown dataset (with the list of valid keys), **422** for invalid input (Pydantic validation or an invalid graph, with an explanation), **500** with a short message (never a stack trace).
+Errors are JSON: **404** for an unknown dataset (with the list of valid keys), **422** for invalid input (Pydantic validation or an invalid graph: each error's type, location and message, without echoing the input back), **413** for a request body over 256 KB (the largest valid request is about 50 KB), **500** with a short message (never a stack trace). Coordinates must be finite numbers (`NaN` and `Infinity` are rejected).
 
 A *graph source* is either `{"dataset": "<key>"}` or a custom graph `{"graph": {id: [ids]}, "names": {id: name}}`. Vertex IDs match `[A-Za-z0-9_.:-]{1,32}`; custom graphs are limited to 60 vertices and 600 edges.
 
@@ -544,7 +544,7 @@ cd frontend
 npm run dev
 ```
 
-The Vite dev server forwards every `/api` request to port 8000, so no URL or CORS setup is needed. Options: `API_TARGET=http://host:port npm run dev` points the proxy elsewhere; `npm run build && npm run preview` serves a production build on port 4173 through the same proxy.
+The Vite dev server forwards every `/api` request to port 8000, so no URL or CORS setup is needed. Options: `API_TARGET=http://host:port npm run dev` points the proxy elsewhere. `npm run build && npm run preview` serves the production build on port 4173; it calls the backend named in `frontend/.env.production`. To try a production build against your local backend, build it in a test mode: `VITE_API_URL=http://127.0.0.1:8000 npx vite build --mode localtest && npm run preview`.
 
 Keyboard shortcuts on the Map and Graph pages: **Space** play/pause, **← →** previous/next phase, **F** finish instantly, **R** reset.
 
@@ -555,11 +555,11 @@ cd backend
 python -m unittest discover -s tests -v
 ```
 
-44 tests, standard library + uvicorn only:
+48 tests, standard library + uvicorn only:
 
 * `test_coloring.py` (17): greedy on empty, single-vertex, triangle and complete graphs K1–K7; every dataset with all three strategies (valid, ≤ Δ + 1 colors); traced steps equal the plain algorithm; recorded used colors are the sorted neighbor colors; the tutorial walkthrough; stable IDs, names and labels; known India borders; conflict detection.
 * `test_algorithms.py` (12): Welsh–Powell equals largest-first greedy (datasets + 40 random graphs); DSATUR validity, bipartite optimality, and that every DSATUR step picks a most-saturated vertex; the crown-graph counterexample; chromatic numbers of known graphs (cycles, Petersen graph, all datasets) and agreement with brute force on 80 random graphs; honest "unknown" when the search budget runs out.
-* `test_api.py` (15): starts the real app with uvicorn and calls every endpoint over HTTP, including 404/422 error cases, custom graphs with optional node labels, invalid graphs (self-loop, one-way edge, unknown vertex, duplicate edge, empty graph, bad ID, too large) and the CORS preflight.
+* `test_api.py` (19): starts the real app with uvicorn and calls every endpoint over HTTP, including 404/422 error cases, custom graphs with optional node labels, invalid graphs (self-loop, one-way edge, unknown vertex, duplicate edge, empty graph, bad ID, too large), non-finite coordinates, error messages that stay short for huge input, 413 for oversized bodies (declared or streamed, with CORS headers) and the CORS preflight.
 
 ## 17. Production Deployment
 
@@ -570,12 +570,15 @@ The frontend and backend are deployed as **two separate Vercel projects**. Deplo
 * **Root Directory:** `backend` (Project Settings → Build and Deployment).
 * **Framework:** FastAPI. `backend/vercel.json` sets `"framework": "fastapi"`, so a project that Vercel auto-detected as *Services* builds correctly. Vercel imports `main:app`; uvicorn is not used there.
 * **Python:** 3.12 (`backend/.python-version`), dependencies from `requirements.txt`.
-* **Environment variable (optional):** `FRONTEND_URL` = the frontend's origin, e.g. `https://your-frontend.vercel.app` (comma-separate several). When set, only those origins may call the API from a browser; when unset, any origin may, which is safe because the API is public, read-only and uses no credentials.
+* **Environment variable (optional, recommended):** `FRONTEND_URL` = the frontend's origin, e.g. `https://your-frontend.vercel.app` (comma-separate several). When set, only those origins may call the API from a browser; when unset, any origin may, which is safe because the API is public, read-only and uses no credentials or cookies.
+* **No secrets.** The backend needs no keys or passwords, reads no files at runtime and writes nothing to disk; its only configuration is `FRONTEND_URL`.
 
 ### Frontend (Vite static site)
 
 * **Root Directory:** `frontend` · **Install:** `npm install` · **Build:** `npm run build` · **Output:** `dist`.
-* **`VITE_API_URL`** = the backend origin **without** `/api`. It is committed in `frontend/.env.production` (`https://backend-tau-eight-78.vercel.app`); a value set in the hosting platform overrides it. Vite embeds it **at build time**, so redeploy the frontend after changing it. The production build never calls `localhost`.
+* **`VITE_API_URL`** = the backend origin **without** `/api`. It is committed in `frontend/.env.production` (`https://backend-tau-eight-78.vercel.app`); a value set in the hosting platform overrides it. Vite embeds it **at build time**, so redeploy the frontend after changing it. It is public by nature: never put a secret in a `VITE_` variable.
+* **Never localhost in production.** A production build **fails** if `VITE_API_URL` points at `localhost`, `127.x.x.x`, `0.0.0.0` or `[::1]`, and warns about plain `http://` (browsers block it on an https site). To build against a local backend for testing, use another mode: `VITE_API_URL=http://127.0.0.1:8000 npx vite build --mode localtest`.
+* No source maps are published, and development-only diagnostics (request URLs in error messages, troubleshooting hints) are removed from the production bundle.
 * The build splits the bundle into app code, libraries and the map geometry, so browsers cache the parts that rarely change.
 
 ## 18. Screenshots

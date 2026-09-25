@@ -12,13 +12,16 @@ MAX_CUSTOM_EDGES = 600
 VertexId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.:\-]{1,32}$")]
 VertexName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
 VertexLabel = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4)]
+DatasetKey = Annotated[str, StringConstraints(min_length=1, max_length=40)]
+# Python's JSON parser accepts NaN and Infinity; a layout must be real numbers.
+Coordinate = Annotated[float, Field(allow_inf_nan=False)]
 Adjacency = Dict[VertexId, List[VertexId]]
 Strategy = Literal["natural", "largest_first", "dsatur"]
 
 
 class Point(BaseModel):
-    x: float
-    y: float
+    x: Coordinate
+    y: Coordinate
 
 
 class ChromaticInfo(BaseModel):
@@ -66,7 +69,7 @@ class GraphResponse(BaseModel):
 
 class GraphSource(BaseModel):
     """Either a built-in dataset (by key) or a custom adjacency list."""
-    dataset: Optional[str] = Field(None, examples=["india"])
+    dataset: Optional[DatasetKey] = Field(None, examples=["india"])
     graph: Optional[Adjacency] = Field(None, description="Custom graph as an adjacency list of vertex IDs")
     names: Optional[Dict[VertexId, VertexName]] = Field(
         None, description="Display names for a custom graph's vertices (IDs are used if omitted)")
@@ -79,7 +82,7 @@ class GraphSource(BaseModel):
             check_custom_graph_size(self.graph)
             unknown = [v for v in (self.names or {}) if v not in self.graph]
             if unknown:
-                raise ValueError(f"'names' mentions vertices that are not in the graph: {', '.join(unknown)}")
+                raise ValueError(f"'names' mentions vertices that are not in the graph: {', '.join(unknown[:10])}")
         return self
 
 
@@ -107,7 +110,7 @@ class AnalyzeRequest(BaseModel):
         for field in ("names", "labels", "layout"):
             unknown = [v for v in (getattr(self, field) or {}) if v not in self.graph]
             if unknown:
-                raise ValueError(f"'{field}' mentions vertices that are not in the graph: {', '.join(unknown)}")
+                raise ValueError(f"'{field}' mentions vertices that are not in the graph: {', '.join(unknown[:10])}")
         return self
 
 
@@ -155,7 +158,7 @@ class ColorResponse(BaseModel):
 
 class ConflictRequest(GraphSource):
     """Check a coloring against a dataset's graph, or against a custom graph."""
-    coloring: Dict[str, int]
+    coloring: Dict[VertexId, int]
 
 
 class ConflictResponse(BaseModel):
